@@ -735,6 +735,20 @@ canvas {
   z-index: 30;
 }
 
+.analytics-sub-header {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 0.5rem;
+}
+
+.analytics-sub-header h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
 .btn-text .theme-icon {
   font-size: 1.2rem;
   margin-right: 0.5rem;

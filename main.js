@@ -582,11 +582,329 @@ class DashboardSim {
         }
       });
     }
+
+    // --------------------------------------------------------
+    // 1. Real-Time Inference FPS & Latency Chart
+    // --------------------------------------------------------
+    const ctxRtFps = document.getElementById('realtimeFpsChart')?.getContext('2d');
+    if (ctxRtFps) {
+      const initialTimeLabels = Array(12).fill(0).map((_, i) => {
+        const d = new Date(Date.now() - (12 - i) * 2000);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      });
+
+      this.realtimeFpsChart = new Chart(ctxRtFps, {
+        type: 'line',
+        data: {
+          labels: initialTimeLabels,
+          datasets: [
+            {
+              label: 'Inference Rate (FPS)',
+              data: [44.8, 45.2, 45.0, 44.6, 45.4, 45.1, 44.9, 45.3, 45.0, 44.7, 45.2, 45.0],
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
+              fill: true,
+              tension: 0.3,
+              yAxisID: 'yFps'
+            },
+            {
+              label: 'Latency (ms)',
+              data: [22.4, 21.8, 22.0, 22.8, 21.5, 22.1, 22.5, 21.9, 22.2, 22.6, 21.8, 22.0],
+              borderColor: '#f59e0b',
+              backgroundColor: 'transparent',
+              borderDash: [5, 5],
+              tension: 0.3,
+              yAxisID: 'yLatency'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            yFps: {
+              type: 'linear',
+              position: 'left',
+              suggestedMin: 30,
+              suggestedMax: 55,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#10b981', callback: v => v + ' FPS' }
+            },
+            yLatency: {
+              type: 'linear',
+              position: 'right',
+              suggestedMin: 10,
+              suggestedMax: 40,
+              grid: { display: false },
+              ticks: { color: '#f59e0b', callback: v => v + ' ms' }
+            }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } }
+          }
+        }
+      });
+    }
+
+    // --------------------------------------------------------
+    // 2. Real-Time Anomaly Risk Score & Active Detections
+    // --------------------------------------------------------
+    const ctxRtAnomaly = document.getElementById('realtimeAnomalyChart')?.getContext('2d');
+    if (ctxRtAnomaly) {
+      const initialTimeLabels = Array(12).fill(0).map((_, i) => {
+        const d = new Date(Date.now() - (12 - i) * 2000);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      });
+
+      this.realtimeAnomalyChart = new Chart(ctxRtAnomaly, {
+        type: 'line',
+        data: {
+          labels: initialTimeLabels,
+          datasets: [
+            {
+              label: 'Anomaly Risk Score (%)',
+              data: [12.4, 11.8, 14.2, 12.0, 15.6, 13.1, 18.4, 14.0, 12.5, 13.8, 11.9, 13.2],
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+              fill: true,
+              tension: 0.4,
+              yAxisID: 'yRisk'
+            },
+            {
+              label: 'Live Detections',
+              data: [4, 5, 5, 4, 6, 6, 7, 5, 4, 5, 6, 5],
+              borderColor: '#06b6d4',
+              backgroundColor: 'transparent',
+              tension: 0.2,
+              yAxisID: 'yDetections'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            yRisk: {
+              type: 'linear',
+              position: 'left',
+              min: 0,
+              max: 100,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#ef4444', callback: v => v + '%' }
+            },
+            yDetections: {
+              type: 'linear',
+              position: 'right',
+              beginAtZero: true,
+              suggestedMax: 15,
+              grid: { display: false },
+              ticks: { color: '#06b6d4' }
+            }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } }
+          }
+        }
+      });
+    }
+
+    // --------------------------------------------------------
+    // 3. Anomaly Detection Method Comparison - Table I
+    // --------------------------------------------------------
+    const ctxAnomalyPerf = document.getElementById('anomalyPerfChart')?.getContext('2d');
+    if (ctxAnomalyPerf) {
+      this.anomalyPerfChart = new Chart(ctxAnomalyPerf, {
+        type: 'bar',
+        data: {
+          labels: ['Optical Flow + SVM', 'Autoencoder', 'ResNet-50', 'YOLOv8 + DeepSORT', 'CNN-LSTM (Proposed)'],
+          datasets: [
+            { label: 'Precision (%)', data: [79.2, 83.4, 89.1, 91.0, 96.7], backgroundColor: '#3b82f6' },
+            { label: 'Recall (%)', data: [76.8, 81.2, 87.6, 90.5, 95.9], backgroundColor: '#10b981' },
+            { label: 'F1-Score (%)', data: [77.9, 82.3, 88.3, 90.7, 96.3], backgroundColor: '#f59e0b' },
+            { label: 'Accuracy (%)', data: [78.1, 82.9, 89.2, 91.0, 96.3], backgroundColor: '#8b5cf6' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#f8fafc', font: { family: 'Inter', size: 10 } } },
+            y: { min: 70, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', callback: v => v + '%' } }
+          },
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } },
+            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw}%` } }
+          }
+        }
+      });
+    }
+
+    // --------------------------------------------------------
+    // 4. ROC Curve Analysis - Fig 3
+    // --------------------------------------------------------
+    const ctxRoc = document.getElementById('rocCurveChart')?.getContext('2d');
+    if (ctxRoc) {
+      this.rocCurveChart = new Chart(ctxRoc, {
+        type: 'line',
+        data: {
+          labels: ['0.0', '0.1', '0.2', '0.3', '0.4', '0.5', '0.6', '0.7', '0.8', '0.9', '1.0'],
+          datasets: [
+            {
+              label: 'Proposed Hybrid (AUC = 0.989)',
+              data: [0.0, 0.88, 0.94, 0.97, 0.985, 0.99, 0.993, 0.996, 0.998, 0.999, 1.0],
+              borderColor: '#10b981',
+              borderWidth: 3,
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: 'CNN-LSTM Single-Branch (AUC = 0.963)',
+              data: [0.0, 0.78, 0.87, 0.91, 0.94, 0.96, 0.97, 0.98, 0.988, 0.995, 1.0],
+              borderColor: '#3b82f6',
+              borderWidth: 2,
+              fill: false,
+              tension: 0.3
+            },
+            {
+              label: 'YOLOv8 Baseline (AUC = 0.951)',
+              data: [0.0, 0.72, 0.82, 0.88, 0.91, 0.935, 0.95, 0.965, 0.98, 0.99, 1.0],
+              borderColor: '#f59e0b',
+              borderWidth: 2,
+              borderDash: [4, 4],
+              fill: false,
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { title: { display: true, text: 'False Positive Rate (FPR)', color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+            y: { title: { display: true, text: 'True Positive Rate (TPR)', color: '#94a3b8' }, min: 0, max: 1.0, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+          },
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 10 } } }
+          }
+        }
+      });
+    }
+
+    // --------------------------------------------------------
+    // 5. Crowd Density Estimation Error - MAE & MSE (Table II)
+    // --------------------------------------------------------
+    const ctxDensityErr = document.getElementById('densityErrorChart')?.getContext('2d');
+    if (ctxDensityErr) {
+      this.densityErrorChart = new Chart(ctxDensityErr, {
+        type: 'bar',
+        data: {
+          labels: ['MCNN [7]', 'CSRNet [7]', 'ViT-based Estimator [6]', 'Proposed Dilated CNN'],
+          datasets: [
+            { label: 'MAE (Part A)', data: [3.8, 2.9, 2.4, 2.1], backgroundColor: '#06b6d4' },
+            { label: 'MSE (Part A)', data: [9.6, 7.1, 5.9, 4.8], backgroundColor: '#3b82f6' },
+            { label: 'MAE (Part B)', data: [5.1, 3.8, 3.2, 2.8], backgroundColor: '#f59e0b' },
+            { label: 'MSE (Part B)', data: [12.3, 8.4, 7.1, 6.0], backgroundColor: '#ef4444' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#f8fafc', font: { family: 'Inter', size: 10 } } },
+            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+          },
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } } },
+            tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw} persons/area` } }
+          }
+        }
+      });
+    }
+
+    // --------------------------------------------------------
+    // 6. Hardware Inference Speed (FPS)
+    // --------------------------------------------------------
+    const ctxHw = document.getElementById('hardwarePerfChart')?.getContext('2d');
+    if (ctxHw) {
+      this.hardwarePerfChart = new Chart(ctxHw, {
+        type: 'bar',
+        data: {
+          labels: ['NVIDIA Jetson AGX Orin (64GB)', 'NVIDIA RTX 2080 Ti GPU', 'Google TPU / Edge CPU', 'Server CPU-Only'],
+          datasets: [
+            {
+              label: 'Inference Speed (FPS)',
+              data: [45.0, 28.0, 8.0, 6.0],
+              backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+              borderWidth: 0
+            }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { beginAtZero: true, suggestedMax: 50, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', callback: v => v + ' FPS' } },
+            y: { grid: { display: false }, ticks: { color: '#f8fafc', font: { family: 'Inter', size: 10 } } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => `Speed: ${ctx.raw} FPS` } }
+          }
+        }
+      });
+    }
   }
 
   startSimulation() {
     setInterval(() => this.updateStats(), 2500);
     setInterval(() => this.generateAlert(), 15000);
+    setInterval(() => this.updateRealtimeCharts(), 1500);
+  }
+
+  updateRealtimeCharts() {
+    const timeLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    // FPS fluctuates realistically around 44-46 FPS on Jetson AGX Orin
+    const currentFps = Math.min(48, Math.max(40, 45 + (Math.random() * 4 - 2)));
+    const currentLatency = Math.min(30, Math.max(18, 22 + (Math.random() * 3 - 1.5)));
+    
+    // Anomaly score fluctuates low unless an anomaly is triggered
+    const baseAnomalyScore = Math.min(99, Math.max(5, (this.activeAlerts > 0 ? 75 : 12) + (Math.random() * 10 - 5)));
+    const liveDetections = (window._webcamSim?.faceIdMap?.length || 0) + Math.floor(Math.random() * 3);
+
+    if (this.realtimeFpsChart) {
+      const labels = this.realtimeFpsChart.data.labels;
+      labels.push(timeLabel);
+      if (labels.length > 15) labels.shift();
+
+      this.realtimeFpsChart.data.datasets[0].data.push(Number(currentFps.toFixed(1)));
+      if (this.realtimeFpsChart.data.datasets[0].data.length > 15) this.realtimeFpsChart.data.datasets[0].data.shift();
+
+      this.realtimeFpsChart.data.datasets[1].data.push(Number(currentLatency.toFixed(1)));
+      if (this.realtimeFpsChart.data.datasets[1].data.length > 15) this.realtimeFpsChart.data.datasets[1].data.shift();
+
+      this.realtimeFpsChart.update();
+    }
+
+    if (this.realtimeAnomalyChart) {
+      const labels = this.realtimeAnomalyChart.data.labels;
+      labels.push(timeLabel);
+      if (labels.length > 15) labels.shift();
+
+      this.realtimeAnomalyChart.data.datasets[0].data.push(Number(baseAnomalyScore.toFixed(1)));
+      if (this.realtimeAnomalyChart.data.datasets[0].data.length > 15) this.realtimeAnomalyChart.data.datasets[0].data.shift();
+
+      this.realtimeAnomalyChart.data.datasets[1].data.push(liveDetections);
+      if (this.realtimeAnomalyChart.data.datasets[1].data.length > 15) this.realtimeAnomalyChart.data.datasets[1].data.shift();
+
+      this.realtimeAnomalyChart.update();
+    }
   }
 
   updateStats() {

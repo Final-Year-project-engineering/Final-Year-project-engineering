@@ -377,6 +377,128 @@
         <!-- VIEW: ANALYTICS                                -->
         <!-- ============================================== -->
         <section id="view-analytics" class="view-section hidden">
+          <!-- Research Paper Metric Highlights KPI Grid -->
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Anomaly Detection Accuracy</h3>
+                <i class='bx bx-check-double icon-green'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-green);">96.3%</div>
+              <div class="stat-trend trend-up"><i class='bx bx-paper-plane'></i> CNN-LSTM Hybrid (Paper Benchmark)</div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>False Positive Reduction</h3>
+                <i class='bx bx-shield-quarter icon-blue'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-blue);">-34.0%</div>
+              <div class="stat-desc">vs. Threshold-based methods</div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Crowd Density Error (MAE)</h3>
+                <i class='bx bx-group icon-cyan'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-cyan);">2.1 <span style="font-size:1rem;color:var(--text-secondary);">persons/area</span></div>
+              <div class="stat-desc">Dilated CNN (ShanghaiTech benchmark)</div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Edge Inference Speed</h3>
+                <i class='bx bx-chip icon-red'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-gold);">45 <span style="font-size:1rem;color:var(--text-secondary);">FPS</span></div>
+              <div class="stat-desc">NVIDIA Jetson AGX Orin 64GB</div>
+            </div>
+          </div>
+
+          <!-- SECTION 1: REAL-TIME TELEMETRY & LIVE VALUE GRAPHS -->
+          <div class="analytics-sub-header" style="margin-bottom: 1rem;">
+            <h2><i class='bx bx-pulse' style="color:var(--accent-red);margin-right:0.5rem;"></i>Real-Time Edge Telemetry & Live Streams</h2>
+            <span class="live-badge" style="margin-left:0.5rem;"><span class="pulse"></span> STREAMING LIVE</span>
+          </div>
+
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <!-- Real-time Live FPS & Latency Monitor -->
+            <div class="stat-card glass-panel" style="grid-column: span 2;">
+              <div class="stat-header">
+                <h3>Real-Time Inference FPS & Latency Monitor</h3>
+                <i class='bx bx-line-chart-down icon-cyan'></i>
+              </div>
+              <div class="chart-container" style="position: relative; height:240px; width:100%">
+                <canvas id="realtimeFpsChart"></canvas>
+              </div>
+            </div>
+            <!-- Real-time Anomaly Risk Score & Live Targets -->
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Live Target Detection & Anomaly Score</h3>
+                <i class='bx bx-radar icon-red'></i>
+              </div>
+              <div class="chart-container" style="position: relative; height:240px; width:100%">
+                <canvas id="realtimeAnomalyChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: RESEARCH PAPER BENCHMARK & ALGORITHM EVALUATIONS -->
+          <div class="analytics-sub-header" style="margin-bottom: 1rem; margin-top: 2rem;">
+            <h2><i class='bx bx-book-open' style="color:var(--accent-blue);margin-right:0.5rem;"></i>Research Paper Model Benchmarks & Comparative Study</h2>
+            <span style="font-size:0.8rem;color:var(--text-secondary);margin-left:0.5rem;">DSATM AI-Assisted Anomaly Detection Dataset Results</span>
+          </div>
+
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <!-- Anomaly Detection Model Comparison (Table I) -->
+            <div class="stat-card glass-panel" style="grid-column: span 2;">
+              <div class="stat-header">
+                <h3>Anomaly Detection Method Comparison (Table I)</h3>
+                <i class='bx bx-bar-chart-alt-2 icon-blue'></i>
+              </div>
+              <div class="chart-container" style="position: relative; height:260px; width:100%">
+                <canvas id="anomalyPerfChart"></canvas>
+              </div>
+            </div>
+            <!-- ROC Curves & AUC Analysis (Fig 3) -->
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>ROC Curve & AUC Analysis (Fig 3)</h3>
+                <i class='bx bx-trending-up icon-green'></i>
+              </div>
+              <div class="chart-container" style="position: relative; height:260px; width:100%">
+                <canvas id="rocCurveChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <!-- Crowd Density Estimation MAE / MSE Comparison (Table II) -->
+            <div class="stat-card glass-panel" style="grid-column: span 2;">
+              <div class="stat-header">
+                <h3>Crowd Density Estimation Error - MAE & MSE (Table II)</h3>
+                <i class='bx bx-layer icon-cyan'></i>
+              </div>
+              <div class="chart-container" style="position: relative; height:250px; width:100%">
+                <canvas id="densityErrorChart"></canvas>
+              </div>
+            </div>
+            <!-- Edge Hardware Inference Speed FPS Comparison -->
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Hardware Inference FPS (Jetson vs CPU/TPU)</h3>
+                <i class='bx bx-chip icon-red'></i>
+              </div>
+              <div class="chart-container" style="position: relative; height:250px; width:100%">
+                <canvas id="hardwarePerfChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: CROWD MANAGEMENT & DEMOGRAPHICS -->
+          <div class="analytics-sub-header" style="margin-bottom: 1rem; margin-top: 2rem;">
+            <h2><i class='bx bx-grid-alt' style="color:var(--accent-cyan);margin-right:0.5rem;"></i>Crowd Flow & Demographics Analytics</h2>
+          </div>
+
           <div class="stats-grid" style="margin-bottom: 1.5rem;">
             <div class="stat-card glass-panel" style="grid-column: span 2;">
               <div class="stat-header">
