@@ -631,6 +631,110 @@ canvas {
   color: white;
 }
 
+/* Camera Zoom Controls & Badges */
+.zoom-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.2rem 0.4rem;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}
+
+.zoom-range-input {
+  width: 70px;
+  height: 6px;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.zoom-badge {
+  background: rgba(0, 240, 255, 0.18) !important;
+  border-color: rgba(0, 240, 255, 0.4) !important;
+  color: var(--accent-cyan) !important;
+  font-family: monospace;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  user-select: none;
+}
+
+.camera-view {
+  user-select: none;
+}
+
+.camera-view.is-zoomed {
+  cursor: grab;
+}
+
+.camera-view.is-panning {
+  cursor: grabbing !important;
+}
+
+.camera-view img, .camera-view video, .camera-view canvas {
+  transition: transform 0.1s ease-out;
+  transform-origin: center center;
+}
+
+.camera-view.is-panning img,
+.camera-view.is-panning video,
+.camera-view.is-panning canvas {
+  transition: none !important;
+}
+
+.camera-view img.night-vision {
+  filter: invert(0.9) hue-rotate(120deg) contrast(1.5) brightness(1.2) !important;
+}
+
+/* Fullscreen Camera Card Styles */
+.camera-card.card-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #090d16 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.camera-card.card-fullscreen .camera-header {
+  padding: 1rem 1.5rem;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 30;
+}
+
+.camera-card.card-fullscreen .cam-gps-bar {
+  padding: 0.5rem 1.5rem;
+  background: rgba(15, 23, 42, 0.7);
+  z-index: 30;
+}
+
+.camera-card.card-fullscreen .camera-view {
+  flex: 1 !important;
+  aspect-ratio: unset !important;
+  height: auto !important;
+  width: 100% !important;
+  max-height: calc(100vh - 120px) !important;
+  background: #000;
+}
+
+.camera-card.card-fullscreen .feed-controls {
+  padding: 0.85rem 1.5rem;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 30;
+}
+
 .btn-text .theme-icon {
   font-size: 1.2rem;
   margin-right: 0.5rem;

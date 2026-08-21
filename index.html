@@ -152,6 +152,7 @@
                       <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span
                           id="cam1-count">0</span></div>
                       <div class="overlay-item alert-overlay" id="cam1-density">Detecting Faces...</div>
+                      <div class="overlay-item zoom-badge" id="cam1-zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span id="cam1-zoom-val">1.0x</span></div>
                     </div>
                   </div>
                   <div class="feed-controls">
@@ -159,6 +160,14 @@
                         class='bx bx-low-vision'></i></button>
                     <button class="control-btn" id="btn-snapshot" title="Capture Snapshot"><i
                         class='bx bx-camera'></i></button>
+                    <button class="control-btn" id="btn-fullscreen" title="Toggle Fullscreen Mode"><i
+                        class='bx bx-fullscreen'></i></button>
+                    <div class="zoom-controls-group">
+                      <button class="control-btn" id="btn-zoom-out" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                      <input type="range" id="cam1-zoom-range" min="1" max="4" step="0.1" value="1" class="zoom-range-input" title="Camera Zoom Level">
+                      <button class="control-btn" id="btn-zoom-in" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                      <button class="control-btn" id="btn-zoom-reset" title="Reset Zoom"><i class='bx bx-reset'></i></button>
+                    </div>
                     <div style="flex-grow: 1;"></div>
                     <div class="overlay-item" style="border: none; background: none;">
                       <span style="font-size: 0.7rem; color: var(--text-secondary); margin-right: 0.5rem;">AI
@@ -169,7 +178,7 @@
                   </div>
                 </div>
                 <!-- Camera 2 -->
-                <div class="camera-card glass-panel">
+                <div class="camera-card glass-panel" id="cam2-card">
                   <div class="camera-header">
                     <span>Cam 02: North Gate Main</span>
                     <span class="status-encryption secure"><i class='bx bx-check-shield'></i> E2E Secure</span>
@@ -185,6 +194,18 @@
                       <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span
                           id="cam2-count">840</span></div>
                       <div class="overlay-item alert-overlay warning-overlay" id="cam2-density">Density: HIGH</div>
+                      <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                    </div>
+                  </div>
+                  <div class="feed-controls">
+                    <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                    <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                    <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                    <div class="zoom-controls-group">
+                      <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                      <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                      <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                      <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
                     </div>
                   </div>
                 </div>
@@ -256,6 +277,18 @@
                 <div class="overlay-stats">
                   <div class="overlay-item"><i class='bx bx-check'></i> Nominal Flow</div>
                   <div class="overlay-item alert-overlay">✓ All Masked</div>
+                  <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                </div>
+              </div>
+              <div class="feed-controls">
+                <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                <div class="zoom-controls-group">
+                  <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                  <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                  <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                  <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
                 </div>
               </div>
             </div>
@@ -270,6 +303,18 @@
                 <div class="overlay-stats">
                   <div class="overlay-item"><i class='bx bx-error'></i> Crowd Peaking</div>
                   <div class="overlay-item alert-overlay warning-overlay">⚠ 18 Without Mask</div>
+                  <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                </div>
+              </div>
+              <div class="feed-controls">
+                <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                <div class="zoom-controls-group">
+                  <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                  <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                  <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                  <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
                 </div>
               </div>
             </div>
@@ -284,6 +329,18 @@
                 <div class="overlay-stats">
                   <div class="overlay-item"><i class='bx bx-check'></i> Nominal Flow</div>
                   <div class="overlay-item alert-overlay">✓ All Masked</div>
+                  <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                </div>
+              </div>
+              <div class="feed-controls">
+                <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                <div class="zoom-controls-group">
+                  <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                  <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                  <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                  <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
                 </div>
               </div>
             </div>
@@ -298,6 +355,18 @@
                 <div class="overlay-stats">
                   <div class="overlay-item"><i class='bx bx-check'></i> All Clear</div>
                   <div class="overlay-item alert-overlay">✓ All Masked</div>
+                  <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                </div>
+              </div>
+              <div class="feed-controls">
+                <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                <div class="zoom-controls-group">
+                  <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                  <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                  <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                  <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
                 </div>
               </div>
             </div>

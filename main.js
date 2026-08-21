@@ -917,6 +917,223 @@ function playAngryMusic() {
 }
 
 // ============================================================
+// ============================================================
+// CAMERA ZOOM & PAN CONTROLLER
+// ============================================================
+
+class CameraZoomController {
+  constructor(container, options = {}) {
+    this.container = container; // .camera-view element
+    if (!this.container) return;
+
+    this.mediaEl = this.container.querySelector('video, img');
+    this.zoomLevel = 1.0;
+    this.panX = 0;
+    this.panY = 0;
+    this.minZoom = 1.0;
+    this.maxZoom = 4.0;
+
+    this.slider = options.slider || null;
+    this.badgeVal = options.badgeVal || null;
+    this.btnIn = options.btnIn || null;
+    this.btnOut = options.btnOut || null;
+    this.btnReset = options.btnReset || null;
+    this.getMediaTrack = options.getMediaTrack || null;
+
+    this.isDragging = false;
+    this.startX = 0;
+    this.startY = 0;
+
+    this.init();
+  }
+
+  init() {
+    // Mouse wheel zoom
+    this.container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.2 : 0.2;
+      this.setZoom(this.zoomLevel + delta);
+    }, { passive: false });
+
+    // Double-click to toggle 1x / 2x zoom
+    this.container.addEventListener('dblclick', (e) => {
+      if (e.target.closest('button, input, .start-overlay, .encryption-overlay')) return;
+      if (this.zoomLevel > 1.05) {
+        this.resetZoom();
+      } else {
+        this.setZoom(2.0);
+      }
+    });
+
+    // Mouse Drag Panning
+    this.container.addEventListener('mousedown', (e) => {
+      if (this.zoomLevel <= 1.05) return;
+      if (e.target.closest('button, input, .start-overlay, .encryption-overlay')) return;
+      this.isDragging = true;
+      this.startX = e.clientX - this.panX;
+      this.startY = e.clientY - this.panY;
+      this.container.classList.add('is-panning');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!this.isDragging) return;
+      e.preventDefault();
+      const newPanX = e.clientX - this.startX;
+      const newPanY = e.clientY - this.startY;
+      this.setPan(newPanX, newPanY);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.container.classList.remove('is-panning');
+      }
+    });
+
+    // Touch support (drag pan and pinch zoom)
+    let initialTouchDist = null;
+    let initialTouchZoom = 1.0;
+
+    this.container.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1 && this.zoomLevel > 1.05) {
+        this.isDragging = true;
+        this.startX = e.touches[0].clientX - this.panX;
+        this.startY = e.touches[0].clientY - this.panY;
+      } else if (e.touches.length === 2) {
+        this.isDragging = false;
+        initialTouchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialTouchZoom = this.zoomLevel;
+      }
+    }, { passive: true });
+
+    this.container.addEventListener('touchmove', (e) => {
+      if (this.isDragging && e.touches.length === 1) {
+        const newPanX = e.touches[0].clientX - this.startX;
+        const newPanY = e.touches[0].clientY - this.startY;
+        this.setPan(newPanX, newPanY);
+      } else if (e.touches.length === 2 && initialTouchDist) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = dist / initialTouchDist;
+        this.setZoom(initialTouchZoom * factor);
+      }
+    }, { passive: true });
+
+    this.container.addEventListener('touchend', () => {
+      this.isDragging = false;
+      initialTouchDist = null;
+    });
+
+    // Bind UI elements if provided
+    if (this.slider) {
+      this.slider.addEventListener('input', (e) => {
+        this.setZoom(parseFloat(e.target.value));
+      });
+    }
+    if (this.btnIn) {
+      this.btnIn.addEventListener('click', () => {
+        this.setZoom(this.zoomLevel + 0.25);
+      });
+    }
+    if (this.btnOut) {
+      this.btnOut.addEventListener('click', () => {
+        this.setZoom(this.zoomLevel - 0.25);
+      });
+    }
+    if (this.btnReset) {
+      this.btnReset.addEventListener('click', () => {
+        this.resetZoom();
+      });
+    }
+  }
+
+  setZoom(val) {
+    this.zoomLevel = Math.max(this.minZoom, Math.min(this.maxZoom, parseFloat(val.toFixed(2))));
+    if (this.zoomLevel <= 1.01) {
+      this.zoomLevel = 1.0;
+      this.panX = 0;
+      this.panY = 0;
+      this.container.classList.remove('is-zoomed');
+    } else {
+      this.container.classList.add('is-zoomed');
+    }
+
+    this.clampPan();
+    this.updateTransform();
+    this.updateUI();
+    this.applyHardwareZoom();
+  }
+
+  setPan(px, py) {
+    this.panX = px;
+    this.panY = py;
+    this.clampPan();
+    this.updateTransform();
+  }
+
+  resetZoom() {
+    this.zoomLevel = 1.0;
+    this.panX = 0;
+    this.panY = 0;
+    this.container.classList.remove('is-zoomed', 'is-panning');
+    this.updateTransform();
+    this.updateUI();
+    this.applyHardwareZoom();
+  }
+
+  clampPan() {
+    if (this.zoomLevel <= 1.0) {
+      this.panX = 0;
+      this.panY = 0;
+      return;
+    }
+    const rect = this.container.getBoundingClientRect();
+    const maxX = (rect.width * (this.zoomLevel - 1)) / 2;
+    const maxY = (rect.height * (this.zoomLevel - 1)) / 2;
+    this.panX = Math.max(-maxX, Math.min(maxX, this.panX));
+    this.panY = Math.max(-maxY, Math.min(maxY, this.panY));
+  }
+
+  updateTransform() {
+    const targets = this.container.querySelectorAll('video, img, canvas');
+    targets.forEach(el => {
+      if (el.closest('.start-overlay') || el.closest('.encryption-overlay')) return;
+      const isMirrored = el.id === 'webcam' || el.style.transform?.includes('scaleX(-1)');
+      const mirrorStr = isMirrored ? 'scaleX(-1) ' : '';
+      el.style.transform = `${mirrorStr}translate(${this.panX / this.zoomLevel}px, ${this.panY / this.zoomLevel}px) scale(${this.zoomLevel})`;
+      el.style.transformOrigin = 'center center';
+    });
+  }
+
+  updateUI() {
+    if (this.slider) {
+      this.slider.value = this.zoomLevel;
+    }
+    if (this.badgeVal) {
+      this.badgeVal.textContent = `${this.zoomLevel.toFixed(1)}x`;
+    }
+  }
+
+  applyHardwareZoom() {
+    if (typeof this.getMediaTrack === 'function') {
+      const track = this.getMediaTrack();
+      if (track && typeof track.getCapabilities === 'function') {
+        const capabilities = track.getCapabilities();
+        if (capabilities.zoom) {
+          const hardwareZoom = Math.min(capabilities.zoom.max, Math.max(capabilities.zoom.min, this.zoomLevel));
+          track.applyConstraints({ advanced: [{ zoom: hardwareZoom }] }).catch(() => {});
+        }
+      }
+    }
+  }
+}
+
+// ============================================================
 // AI WEBCAM + FACE DETECTION + MASK DETECTION
 // ============================================================
 
@@ -943,6 +1160,16 @@ class WebcamMaskDetector {
   }
 
   init() {
+    // Zoom controller for live entrance webcam
+    this.zoomController = new CameraZoomController(this.container, {
+      slider: document.getElementById('cam1-zoom-range'),
+      badgeVal: document.getElementById('cam1-zoom-val'),
+      btnIn: document.getElementById('btn-zoom-in'),
+      btnOut: document.getElementById('btn-zoom-out'),
+      btnReset: document.getElementById('btn-zoom-reset'),
+      getMediaTrack: () => this.video?.srcObject?.getVideoTracks()?.[0]
+    });
+
     document.getElementById('btn-start-monitor')?.addEventListener('click', () => {
       this.startOverlay?.classList.add('hidden');
       this.initializeAI();
@@ -964,6 +1191,10 @@ class WebcamMaskDetector {
 
     document.getElementById('btn-snapshot')?.addEventListener('click', () => {
       this.takeSnapshot();
+    });
+
+    document.getElementById('btn-fullscreen')?.addEventListener('click', () => {
+      toggleCameraFullscreen(document.getElementById('cam1-card'));
     });
   }
 
@@ -1923,6 +2154,123 @@ function showProfilePanel(faceId) {
   panel.classList.add('open');
 }
 
+function toggleCameraFullscreen(card) {
+  if (!card) return;
+
+  const isFs = document.fullscreenElement === card || card.classList.contains('card-fullscreen');
+
+  if (!isFs) {
+    card.classList.add('card-fullscreen');
+    if (card.requestFullscreen) {
+      card.requestFullscreen().catch(() => {});
+    } else if (card.webkitRequestFullscreen) {
+      card.webkitRequestFullscreen();
+    }
+  } else {
+    card.classList.remove('card-fullscreen');
+    if (document.fullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+  }
+
+  updateFullscreenBtnIcon(card);
+}
+
+function updateFullscreenBtnIcon(card) {
+  const btn = card.querySelector('#btn-fullscreen, .btn-fullscreen-card');
+  if (!btn) return;
+  const isFs = document.fullscreenElement === card || card.classList.contains('card-fullscreen');
+  const icon = btn.querySelector('i');
+  if (icon) {
+    icon.className = isFs ? 'bx bx-exit-fullscreen' : 'bx bx-fullscreen';
+  }
+  btn.classList.toggle('active', isFs);
+}
+
+document.addEventListener('fullscreenchange', () => {
+  document.querySelectorAll('.camera-card').forEach(card => {
+    const isFs = document.fullscreenElement === card;
+    if (!isFs) {
+      card.classList.remove('card-fullscreen');
+    }
+    updateFullscreenBtnIcon(card);
+  });
+});
+
+function takeCardSnapshot(card) {
+  const media = card.querySelector('.camera-view img, .camera-view video');
+  if (!media) return;
+  const canvas = document.createElement('canvas');
+  if (media.tagName.toLowerCase() === 'img') {
+    canvas.width = media.naturalWidth || media.clientWidth || 640;
+    canvas.height = media.naturalHeight || media.clientHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+  } else {
+    canvas.width = media.videoWidth || 640;
+    canvas.height = media.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+  }
+  const link = document.createElement('a');
+  const title = card.querySelector('.camera-header span')?.textContent.trim() || 'camera';
+  link.download = `${title.replace(/[^a-z0-9]/gi, '_')}_snapshot_${Date.now()}.png`;
+  link.href = canvas.toDataURL();
+  link.click();
+}
+
+function initAllCameraCards() {
+  document.querySelectorAll('.camera-card').forEach((card) => {
+    if (card.id === 'cam1-card') return; // Handled by WebcamMaskDetector
+
+    const container = card.querySelector('.camera-view');
+    if (!container) return;
+
+    const slider = card.querySelector('.card-zoom-range');
+    const badgeVal = card.querySelector('.zoom-val');
+    const btnIn = card.querySelector('.btn-zoom-in-card');
+    const btnOut = card.querySelector('.btn-zoom-out-card');
+    const btnReset = card.querySelector('.btn-zoom-reset-card');
+
+    new CameraZoomController(container, {
+      slider,
+      badgeVal,
+      btnIn,
+      btnOut,
+      btnReset
+    });
+
+    const btnNv = card.querySelector('.btn-night-vision-card');
+    if (btnNv) {
+      btnNv.addEventListener('click', () => {
+        const img = card.querySelector('.camera-view img, .camera-view video');
+        if (img) {
+          img.classList.toggle('night-vision');
+          btnNv.classList.toggle('active', img.classList.contains('night-vision'));
+        }
+      });
+    }
+
+    const btnSnap = card.querySelector('.btn-snapshot-card');
+    if (btnSnap) {
+      btnSnap.addEventListener('click', () => {
+        takeCardSnapshot(card);
+      });
+    }
+
+    const btnFs = card.querySelector('.btn-fullscreen-card');
+    if (btnFs) {
+      btnFs.addEventListener('click', () => {
+        toggleCameraFullscreen(card);
+      });
+    }
+  });
+}
+
 // ============================================================
 // GLOBAL INIT
 // ============================================================
@@ -1933,6 +2281,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initThemeToggle();
   initSettings();
   initRegistration();
+  initAllCameraCards();
 
   window._dashSim = new DashboardSim();
   window._webcamSim = new WebcamMaskDetector();
