@@ -2036,33 +2036,84 @@ class WebcamMaskDetector {
         const hasRoyalBlue = darkBlueRatio >= 2.0;
         // 3. Gold/yellow DSATM banner header covers ≥2%
         const hasYellow = yellowRatio >= 2.0;
-        // 4. White ID card body covers ≥8% — mandatory in every path
-        const hasWhiteCard = whiteRatio >= 8.0;
+        // 4. White ID card body covers ≥15% — mandatory in every path
+        const hasWhiteCard = whiteRatio >= 15.0;
 
         // Vertical-streak check: split chest ROI into 4 horizontal bands and
         // verify strong blue appears in at least 3 of them (real lanyard hangs
         // continuously; background blue is typically localised to 1-2 bands).
-        const bandH = Math.max(1, Math.floor(sh / 4));
-        const bandBlue = [0, 0, 0, 0];
-        for (let bi = 0; bi < len; bi += 4) {
-          const pixelRow = Math.floor((bi / 4) / Math.max(1, sw));
-          const bandIdx  = Math.min(3, Math.floor(pixelRow / bandH));
-          const rp = data[bi], gp = data[bi + 1], bp = data[bi + 2];
-          if ((bp >= 50) && ((bp - rp) >= 12) && ((bp - gp) >= 6)) bandBlue[bandIdx]++;
-        }
-        const blueBandsActive    = bandBlue.filter(v => v >= 10).length;
-        const hasVerticalLanyard = blueBandsActive >= 3;
+       // Vertical lanyard check
+// Check whether blue appears around the SAME horizontal position
+// across multiple vertical sections.
+
+const bandH = Math.max(1, Math.floor(sh / 6));
+const bandW = Math.max(1, Math.floor(sw / 8));
+
+const blueGrid = Array.from(
+  { length: 6 },
+  () => Array(8).fill(0)
+);
+
+for (let bi = 0; bi < len; bi += 4) {
+
+  const pixelIndex = bi / 4;
+
+  const pixelRow = Math.floor(pixelIndex / Math.max(1, sw));
+  const pixelCol = pixelIndex % Math.max(1, sw);
+
+  const row = Math.min(
+    5,
+    Math.floor(pixelRow / bandH)
+  );
+
+  const col = Math.min(
+    7,
+    Math.floor(pixelCol / bandW)
+  );
+
+  const rp = data[bi];
+  const gp = data[bi + 1];
+  const bp = data[bi + 2];
+
+  if (
+    bp >= 50 &&
+    (bp - rp) >= 12 &&
+    (bp - gp) >= 6
+  ) {
+    blueGrid[row][col]++;
+  }
+}
+
+// Find the column containing blue in the most rows
+let maxBlueRows = 0;
+
+for (let col = 0; col < 8; col++) {
+
+  let activeRows = 0;
+
+  for (let row = 0; row < 6; row++) {
+
+    if (blueGrid[row][col] >= 10) {
+      activeRows++;
+    }
+  }
+
+  maxBlueRows = Math.max(maxBlueRows, activeRows);
+}
+
+// Blue must appear vertically in at least 4 of 6 rows
+const hasVerticalLanyard = maxBlueRows >= 4;
 
         // ID confirmed only when white card is visible PLUS one of:
         //   • Strong blue lanyard spanning ≥3 vertical bands, OR
         //   • Very saturated royal-blue (most definitive DSATM lanyard colour), OR
         //   • Gold/yellow DSATM header banner
         // hasWhiteCard is required in ALL paths — no card visible = no ID.
-        const hasId   = hasWhiteCard && (
-                          (hasBlueStrap && hasVerticalLanyard) ||
-                           hasRoyalBlue ||
-                           hasYellow
-                        );
+        const hasId =
+    hasWhiteCard &&
+    hasBlueStrap &&
+    hasVerticalLanyard &&
+    hasYellow; 
         const isDsatm = hasId;
 
         if (!hasId) {
@@ -2075,8 +2126,17 @@ class WebcamMaskDetector {
           };
         }
 
-        const confidence = Math.min(99, Math.max(87, Math.round(87 + blueRatio * 3 + yellowRatio * 5)));
-
+       const confidence = Math.min(
+  98,
+  Math.max(
+    85,
+    Math.round(
+      85 +
+      Math.min(8, blueRatio) +
+      Math.min(5, yellowRatio)
+    )
+  )
+);
         return {
           hasId: true,
           isDsatm: true,
