@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://unpkg.com; img-src 'self' data: https://ui-avatars.com blob:; media-src * blob: mediastream: data:; connect-src * ws: wss: https://nominatim.openstreetmap.org https://ipapi.co;">
+    
   <title>AI assisted solution for anomaly detection,security and crowd environment</title>
   <!-- Modern font: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -189,7 +190,7 @@
                     <span class="gps-mask-summary" id="cam2-mask-bar"><i class='bx bx-mask'></i> 94.2% compliant</span>
                   </div>
                   <div class="camera-view">
-                    <img src="/camera2.png" alt="North Gate Feed">
+                    <video id="cam2-video" src="/cam02_feed.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>
                     <div class="overlay-stats">
                       <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span
                           id="cam2-count">840</span></div>
@@ -227,6 +228,7 @@
                         <th>Name</th>
                         <th>Dept / Role</th>
                         <th>Mask Status</th>
+                        <th>ID Card</th>
                         <th>GPS Location</th>
                         <th>Conf.</th>
                         <th>Profile</th>
@@ -234,7 +236,7 @@
                     </thead>
                     <tbody id="persons-tbody">
                       <tr>
-                        <td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1rem;"><i
+                        <td colspan="8" style="text-align:center;color:var(--text-secondary);padding:1rem;"><i
                             class="bx bx-search-alt"></i> Scanning for faces...</td>
                       </tr>
                     </tbody>
@@ -266,17 +268,18 @@
             <div class="live-badge"><span class="pulse"></span> AREA SECURE</div>
           </div>
           <div class="multi-grid">
-            <div class="camera-card glass-panel">
-              <div class="camera-header"><span>Sector 4 - Plaza</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> Connected</span></div>
+            <div class="camera-card glass-panel" id="feeds-cam2-card">
+              <div class="camera-header"><span>Cam 02: North Gate Main</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> E2E Secure</span></div>
               <div class="cam-gps-bar cam-gps-static">
                 <i class='bx bx-map-pin'></i>
-                <span>28.7041° N, 77.1025° E &nbsp;·&nbsp; New Delhi</span>
-                <span class="gps-mask-summary"><i class='bx bx-mask'></i> 96.8% compliant</span>
+                <span>19.0760° N, 72.8777° E &nbsp;·&nbsp; Mumbai, MH</span>
+                <span class="gps-mask-summary" id="feeds-cam2-mask-bar"><i class='bx bx-mask'></i> 94.2% compliant</span>
               </div>
-              <div class="camera-view"><img src="/camera1.png" style="filter: hue-rotate(45deg);">
+              <div class="camera-view">
+                <video id="feeds-cam2-video" src="/cam02_feed.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>
                 <div class="overlay-stats">
-                  <div class="overlay-item"><i class='bx bx-check'></i> Nominal Flow</div>
-                  <div class="overlay-item alert-overlay">✓ All Masked</div>
+                  <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span id="feeds-cam2-count">840</span></div>
+                  <div class="overlay-item alert-overlay warning-overlay" id="feeds-cam2-density">Density: HIGH</div>
                   <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
                 </div>
               </div>
@@ -824,6 +827,7 @@
         <div class="pp-badges">
           <span id="pp-status" class="pp-status-badge">—</span>
           <span id="pp-mask" class="pp-mask-badge">—</span>
+          <span id="pp-idcard" class="pp-idcard-badge">—</span>
         </div>
         <div class="pp-ids">
           <span id="pp-regid" style="font-family:monospace;color:var(--accent-cyan);">—</span>
@@ -833,6 +837,9 @@
       </div>
     </div>
     <div class="pp-body">
+      <div class="pp-row"><i class='bx bx-badge-check' style="color:var(--accent-green);"></i>
+        <div><span class="pp-label">ID Card Verification</span><span id="pp-idcard-val" class="pp-val">—</span></div>
+      </div>
       <div class="pp-row"><i class='bx bx-building'></i>
         <div><span class="pp-label">Department</span><span id="pp-dept" class="pp-val">—</span></div>
       </div>
