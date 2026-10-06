@@ -307,6 +307,13 @@ function initRouting() {
       }
       else if (targetId === 'view-analytics') {
         titleEl.innerText = 'Deep AI Analytics';
+        setTimeout(() => {
+          if (window._dashSim) {
+            window._dashSim.updateCamIdStats();
+            window._dashSim.camIdBarChart?.resize();
+            window._dashSim.camIdDoughnutChart?.resize();
+          }
+        }, 100);
       }
       else if (targetId === 'view-alerts') {
         titleEl.innerText = 'Security Notification Center';
@@ -362,6 +369,14 @@ class DashboardSim {
     this.activeAlerts = 3;
     this.cam2Detections = 840;
     this.sensitivity = 0.75;
+
+    // Camera-wise ID Compliance Real-Time Stats
+    this.camIdStats = {
+      cam1: { name: 'Cam 01 (Entrance)', total: 0, compliant: 0, violations: 0, rate: 100 },
+      cam2: { name: 'Cam 02 (North Gate)', total: 840, compliant: 768, violations: 72, rate: 91.4 },
+      cam3: { name: 'Sector 7 (West Gate)', total: 325, compliant: 275, violations: 50, rate: 84.6 },
+      cam4: { name: 'Sector 2 (Food Court)', total: 540, compliant: 525, violations: 15, rate: 97.2 }
+    };
 
     this.alertTemplates = [
       {
@@ -629,6 +644,114 @@ class DashboardSim {
             legend: {
               position: 'right',
               labels: { color: '#f8fafc', font: { family: 'Inter', size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    // --------------------------------------------------------
+    // Camera-Wise ID Compliance Bar Chart
+    // --------------------------------------------------------
+    const ctxCamIdBar = document.getElementById('camIdBarChart')?.getContext('2d');
+    if (ctxCamIdBar) {
+      this.camIdBarChart = new Chart(ctxCamIdBar, {
+        type: 'bar',
+        data: {
+          labels: ['Cam 01 (Entrance)', 'Cam 02 (North Gate)', 'Sector 7 (West Gate)', 'Sector 2 (Food Court)'],
+          datasets: [
+            {
+              label: 'ID Compliant',
+              data: [
+                this.camIdStats.cam1.compliant,
+                this.camIdStats.cam2.compliant,
+                this.camIdStats.cam3.compliant,
+                this.camIdStats.cam4.compliant
+              ],
+              backgroundColor: 'rgba(16, 185, 129, 0.85)',
+              borderRadius: 4
+            },
+            {
+              label: 'No ID (Violations)',
+              data: [
+                this.camIdStats.cam1.violations,
+                this.camIdStats.cam2.violations,
+                this.camIdStats.cam3.violations,
+                this.camIdStats.cam4.violations
+              ],
+              backgroundColor: 'rgba(239, 68, 68, 0.85)',
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: false,
+              grid: { display: false },
+              ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 } }
+            },
+            y: {
+              stacked: false,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#94a3b8', font: { family: 'Inter', size: 10 } }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { color: '#f8fafc', font: { family: 'Inter', size: 11 } }
+            },
+            tooltip: {
+              callbacks: {
+                afterBody: (context) => {
+                  const dataIndex = context[0].dataIndex;
+                  const keys = ['cam1', 'cam2', 'cam3', 'cam4'];
+                  const stat = this.camIdStats[keys[dataIndex]];
+                  return `Compliance Rate: ${stat.rate.toFixed(1)}%`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // --------------------------------------------------------
+    // Campus-Wide ID Card Status Doughnut Chart
+    // --------------------------------------------------------
+    const ctxCamIdDoughnut = document.getElementById('camIdDoughnutChart')?.getContext('2d');
+    if (ctxCamIdDoughnut) {
+      const totCompliant = this.camIdStats.cam1.compliant + this.camIdStats.cam2.compliant +
+                           this.camIdStats.cam3.compliant + this.camIdStats.cam4.compliant;
+      const totViolations = this.camIdStats.cam1.violations + this.camIdStats.cam2.violations +
+                            this.camIdStats.cam3.violations + this.camIdStats.cam4.violations;
+
+      this.camIdDoughnutChart = new Chart(ctxCamIdDoughnut, {
+        type: 'doughnut',
+        data: {
+          labels: ['Wearing ID Card', 'No ID (Violation)'],
+          datasets: [
+            {
+              data: [totCompliant || 1, totViolations],
+              backgroundColor: ['#22d3ee', '#ef4444'],
+              borderWidth: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#f8fafc',
+                font: { family: 'Inter', size: 11 }
+              }
             }
           }
         }
@@ -1024,6 +1147,101 @@ class DashboardSim {
         dataZ[i] = Math.max(5, Math.min(100, dataZ[i] + Math.floor(Math.random() * 7) - 3));
       }
       this.zoneRiskChart.update();
+    }
+
+    this.updateCamIdStats();
+  }
+
+  updateCamIdStats() {
+    // Cam 2 minor telemetry fluctuation
+    const cam2Jitter = Math.floor(Math.random() * 3) - 1;
+    this.camIdStats.cam2.total = Math.max(800, this.camIdStats.cam2.total + cam2Jitter);
+    this.camIdStats.cam2.compliant = Math.max(700, Math.min(this.camIdStats.cam2.total, this.camIdStats.cam2.compliant + cam2Jitter));
+    this.camIdStats.cam2.violations = Math.max(0, this.camIdStats.cam2.total - this.camIdStats.cam2.compliant);
+    this.camIdStats.cam2.rate = this.camIdStats.cam2.total > 0
+      ? (this.camIdStats.cam2.compliant / this.camIdStats.cam2.total) * 100 : 100;
+
+    // Render KPI stat values & descriptions
+    const c1El = document.getElementById('analytics-cam1-id-compliance');
+    const c1Sub = document.getElementById('analytics-cam1-id-details');
+    if (c1El) c1El.innerText = `${this.camIdStats.cam1.rate.toFixed(1)}%`;
+    if (c1Sub) c1Sub.innerText = `Active Feed · ${this.camIdStats.cam1.compliant} / ${this.camIdStats.cam1.total} Wearing ID`;
+
+    const c2El = document.getElementById('analytics-cam2-id-compliance');
+    const c2Sub = document.getElementById('analytics-cam2-id-details');
+    if (c2El) c2El.innerText = `${this.camIdStats.cam2.rate.toFixed(1)}%`;
+    if (c2Sub) c2Sub.innerText = `North Gate · ${this.camIdStats.cam2.compliant} / ${this.camIdStats.cam2.total} Wearing ID`;
+
+    const c3El = document.getElementById('analytics-cam3-id-compliance');
+    if (c3El) c3El.innerText = `${this.camIdStats.cam3.rate.toFixed(1)}%`;
+
+    const c4El = document.getElementById('analytics-cam4-id-compliance');
+    if (c4El) c4El.innerText = `${this.camIdStats.cam4.rate.toFixed(1)}%`;
+
+    // Render Table row for Cam 1
+    const t1Tot = document.getElementById('tbl-cam1-total');
+    const t1Comp = document.getElementById('tbl-cam1-compliant');
+    const t1Viol = document.getElementById('tbl-cam1-violations');
+    const t1Rate = document.getElementById('tbl-cam1-rate');
+    const t1Badge = document.getElementById('tbl-cam1-badge');
+    if (t1Tot) t1Tot.innerText = this.camIdStats.cam1.total;
+    if (t1Comp) t1Comp.innerText = this.camIdStats.cam1.compliant;
+    if (t1Viol) t1Viol.innerText = this.camIdStats.cam1.violations;
+    if (t1Rate) t1Rate.innerText = `${this.camIdStats.cam1.rate.toFixed(1)}%`;
+    if (t1Badge) {
+      if (this.camIdStats.cam1.rate >= 90) {
+        t1Badge.innerText = 'OPTIMAL';
+        t1Badge.style.color = 'var(--accent-green)';
+        t1Badge.style.background = 'rgba(16,185,129,0.15)';
+        t1Badge.style.borderColor = 'rgba(16,185,129,0.3)';
+      } else if (this.camIdStats.cam1.rate >= 75) {
+        t1Badge.innerText = 'MODERATE';
+        t1Badge.style.color = 'var(--accent-gold)';
+        t1Badge.style.background = 'rgba(245,158,11,0.15)';
+        t1Badge.style.borderColor = 'rgba(245,158,11,0.3)';
+      } else {
+        t1Badge.innerText = 'ALERT';
+        t1Badge.style.color = 'var(--accent-red)';
+        t1Badge.style.background = 'rgba(239,68,68,0.15)';
+        t1Badge.style.borderColor = 'rgba(239,68,68,0.3)';
+      }
+    }
+
+    // Render Table row for Cam 2
+    const t2Tot = document.getElementById('tbl-cam2-total');
+    const t2Comp = document.getElementById('tbl-cam2-compliant');
+    const t2Viol = document.getElementById('tbl-cam2-violations');
+    const t2Rate = document.getElementById('tbl-cam2-rate');
+    if (t2Tot) t2Tot.innerText = this.camIdStats.cam2.total;
+    if (t2Comp) t2Comp.innerText = this.camIdStats.cam2.compliant;
+    if (t2Viol) t2Viol.innerText = this.camIdStats.cam2.violations;
+    if (t2Rate) t2Rate.innerText = `${this.camIdStats.cam2.rate.toFixed(1)}%`;
+
+    // Update Bar Chart
+    if (this.camIdBarChart) {
+      this.camIdBarChart.data.datasets[0].data = [
+        this.camIdStats.cam1.compliant,
+        this.camIdStats.cam2.compliant,
+        this.camIdStats.cam3.compliant,
+        this.camIdStats.cam4.compliant
+      ];
+      this.camIdBarChart.data.datasets[1].data = [
+        this.camIdStats.cam1.violations,
+        this.camIdStats.cam2.violations,
+        this.camIdStats.cam3.violations,
+        this.camIdStats.cam4.violations
+      ];
+      this.camIdBarChart.update();
+    }
+
+    // Update Doughnut Chart
+    if (this.camIdDoughnutChart) {
+      const totCompliant = this.camIdStats.cam1.compliant + this.camIdStats.cam2.compliant +
+                           this.camIdStats.cam3.compliant + this.camIdStats.cam4.compliant;
+      const totViolations = this.camIdStats.cam1.violations + this.camIdStats.cam2.violations +
+                            this.camIdStats.cam3.violations + this.camIdStats.cam4.violations;
+      this.camIdDoughnutChart.data.datasets[0].data = [totCompliant || 1, totViolations];
+      this.camIdDoughnutChart.update();
     }
   }
 
@@ -2540,6 +2758,17 @@ const hasVerticalLanyard = maxBlueRows >= 4;
         updateViolatorsPanel(newViolators, noMaskCount);
 
         updatePersonsTable(personRows);
+
+        // Synchronize live Cam 01 ID compliance into Analytics
+        if (window._dashSim && window._dashSim.camIdStats) {
+          const totalInFrame = resized.length;
+          const compliantInFrame = totalInFrame - noIdCount;
+          window._dashSim.camIdStats.cam1.total = totalInFrame;
+          window._dashSim.camIdStats.cam1.compliant = compliantInFrame;
+          window._dashSim.camIdStats.cam1.violations = noIdCount;
+          window._dashSim.camIdStats.cam1.rate = totalInFrame > 0 ? (compliantInFrame / totalInFrame) * 100 : 100;
+          window._dashSim.updateCamIdStats();
+        }
 
         const now = Date.now();
 

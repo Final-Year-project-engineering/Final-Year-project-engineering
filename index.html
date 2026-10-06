@@ -544,6 +544,135 @@
                   id="zoneRiskChart"></canvas></div>
             </div>
           </div>
+
+          <!-- SECTION 4: CAMERA-WISE ID CARD COMPLIANCE ANALYTICS -->
+          <div class="analytics-sub-header" style="margin-bottom: 1rem; margin-top: 2rem;">
+            <h2><i class='bx bx-id-card' style="color:var(--accent-blue);margin-right:0.5rem;"></i>Camera-Wise ID Compliance Analytics</h2>
+            <span class="live-badge" style="margin-left:0.5rem;"><span class="pulse"></span> MULTI-CAM TELEMETRY</span>
+          </div>
+
+          <!-- Camera ID Compliance Overview Cards -->
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Cam 01 (Entrance)</h3>
+                <span class="status-encryption secure" style="font-size:0.7rem;padding:2px 8px;"><i class='bx bx-broadcast'></i> Live AI</span>
+              </div>
+              <div class="stat-value" id="analytics-cam1-id-compliance" style="color:var(--accent-green);">100%</div>
+              <div class="stat-desc" id="analytics-cam1-id-details">Active Feed · 0 / 0 Wearing ID</div>
+            </div>
+
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Cam 02 (North Gate)</h3>
+                <span class="status-encryption secure" style="font-size:0.7rem;padding:2px 8px;"><i class='bx bx-check-shield'></i> 4K Edge</span>
+              </div>
+              <div class="stat-value" id="analytics-cam2-id-compliance" style="color:var(--accent-cyan);">91.4%</div>
+              <div class="stat-desc" id="analytics-cam2-id-details">North Gate · 768 / 840 Wearing ID</div>
+            </div>
+
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Sector 7 (West Gate)</h3>
+                <span style="font-size:0.7rem;color:var(--accent-gold);padding:2px 8px;background:rgba(245,158,11,0.1);border-radius:12px;border:1px solid rgba(245,158,11,0.3);"><i class='bx bx-time'></i> Fixed Sector</span>
+              </div>
+              <div class="stat-value" id="analytics-cam3-id-compliance" style="color:var(--accent-gold);">84.6%</div>
+              <div class="stat-desc" id="analytics-cam3-id-details">West Perimeter · 275 / 325 Wearing ID</div>
+            </div>
+
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Sector 2 (Food Court)</h3>
+                <span class="status-encryption secure" style="font-size:0.7rem;padding:2px 8px;"><i class='bx bx-check'></i> Nominal</span>
+              </div>
+              <div class="stat-value" id="analytics-cam4-id-compliance" style="color:var(--accent-green);">97.2%</div>
+              <div class="stat-desc" id="analytics-cam4-id-details">Central Plaza · 525 / 540 Wearing ID</div>
+            </div>
+          </div>
+
+          <!-- Charts: Bar Comparison & Overall Compliance Ratio -->
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-card glass-panel" style="grid-column: span 2;">
+              <div class="stat-header">
+                <h3>Camera-Wise ID Compliance vs Violations</h3>
+                <i class='bx bx-bar-chart-alt-2 icon-blue'></i>
+              </div>
+              <div class="chart-container" style="position: relative; height:260px; width:100%">
+                <canvas id="camIdBarChart"></canvas>
+              </div>
+            </div>
+
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Campus-Wide ID Card Status</h3>
+                <i class='bx bx-pie-chart-alt icon-cyan'></i>
+              </div>
+              <div class="chart-container" style="position: relative; height:260px; width:100%; display:flex; justify-content:center;">
+                <canvas id="camIdDoughnutChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed Camera Compliance Breakdown Table -->
+          <div class="persons-table-wrap glass-panel" style="margin-bottom: 1.5rem;">
+            <div class="section-header" style="padding:0.9rem 1rem 0;">
+              <h2><i class='bx bx-list-check' style="margin-right:0.4rem;color:var(--accent-blue);"></i>Camera Stream ID Card Compliance Matrix</h2>
+              <span style="font-size:0.8rem;color:var(--text-secondary);">Audit Log &middot; Real-Time Edge Synchronization</span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="persons-table">
+                <thead>
+                  <tr>
+                    <th>Camera Feed</th>
+                    <th>Location / Zone</th>
+                    <th>Total Inspected</th>
+                    <th>ID Compliant</th>
+                    <th>ID Violations (No ID)</th>
+                    <th>Compliance Rate</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="cam-id-table-body">
+                  <tr>
+                    <td><strong><i class='bx bx-video' style="color:var(--accent-blue);margin-right:4px;"></i>Cam 01 (Entrance)</strong></td>
+                    <td>Entrance Live Webcam</td>
+                    <td id="tbl-cam1-total">0</td>
+                    <td id="tbl-cam1-compliant" style="color:var(--accent-green);">0</td>
+                    <td id="tbl-cam1-violations" style="color:var(--accent-red);">0</td>
+                    <td id="tbl-cam1-rate" style="font-weight:700;">100%</td>
+                    <td><span class="mask-pill" id="tbl-cam1-badge" style="background:rgba(16,185,129,0.15);color:var(--accent-green);border:1px solid rgba(16,185,129,0.3);">OPTIMAL</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong><i class='bx bx-video' style="color:var(--accent-cyan);margin-right:4px;"></i>Cam 02 (North Gate)</strong></td>
+                    <td>North Gate Main 4K</td>
+                    <td id="tbl-cam2-total">840</td>
+                    <td id="tbl-cam2-compliant" style="color:var(--accent-green);">768</td>
+                    <td id="tbl-cam2-violations" style="color:var(--accent-red);">72</td>
+                    <td id="tbl-cam2-rate" style="font-weight:700;">91.4%</td>
+                    <td><span class="mask-pill" id="tbl-cam2-badge" style="background:rgba(16,185,129,0.15);color:var(--accent-green);border:1px solid rgba(16,185,129,0.3);">OPTIMAL</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong><i class='bx bx-video' style="color:var(--accent-gold);margin-right:4px;"></i>Sector 7 (West Gate)</strong></td>
+                    <td>West Perimeter Checkpoint</td>
+                    <td id="tbl-cam3-total">325</td>
+                    <td id="tbl-cam3-compliant" style="color:var(--accent-green);">275</td>
+                    <td id="tbl-cam3-violations" style="color:var(--accent-red);">50</td>
+                    <td id="tbl-cam3-rate" style="font-weight:700;">84.6%</td>
+                    <td><span class="mask-pill" id="tbl-cam3-badge" style="background:rgba(245,158,11,0.15);color:var(--accent-gold);border:1px solid rgba(245,158,11,0.3);">MODERATE</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong><i class='bx bx-video' style="color:var(--accent-green);margin-right:4px;"></i>Sector 2 (Food Court)</strong></td>
+                    <td>Central Plaza / Dining Area</td>
+                    <td id="tbl-cam4-total">540</td>
+                    <td id="tbl-cam4-compliant" style="color:var(--accent-green);">525</td>
+                    <td id="tbl-cam4-violations" style="color:var(--accent-red);">15</td>
+                    <td id="tbl-cam4-rate" style="font-weight:700;">97.2%</td>
+                    <td><span class="mask-pill" id="tbl-cam4-badge" style="background:rgba(16,185,129,0.15);color:var(--accent-green);border:1px solid rgba(16,185,129,0.3);">OPTIMAL</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <!-- ============================================== -->
