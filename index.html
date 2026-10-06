@@ -206,6 +206,37 @@
                       <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
                       <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
                       <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                    </div>
+                  </div>
+                </div>
+                <!-- Camera 3 -->
+                <div class="camera-card glass-panel" id="cam3-card">
+                  <div class="camera-header">
+                    <span>Cam 03: Sector 7 - West Gate</span>
+                    <span class="status-encryption secure"><i class='bx bx-check-shield'></i> Connected</span>
+                  </div>
+                  <div class="cam-gps-bar cam-gps-static cam-gps-warn">
+                    <i class='bx bx-map-pin'></i>
+                    <span>12.9716° N, 77.5946° E &nbsp;·&nbsp; Bengaluru, KA</span>
+                    <span class="gps-mask-summary gps-mask-alert"><i class='bx bx-mask'></i> 84.6% — ⚠ 50 No ID</span>
+                  </div>
+                  <div class="camera-view" style="position:relative;">
+                    <video id="cam3-video" src="/cam03_feed.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+                    <canvas id="cam3-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;"></canvas>
+                    <div class="overlay-stats">
+                      <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span id="cam3-count">0</span></div>
+                      <div class="overlay-item" id="cam3-density" style="color:#f59e0b;">⏳ Loading AI…</div>
+                      <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                    </div>
+                  </div>
+                  <div class="feed-controls">
+                    <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                    <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                    <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                    <div class="zoom-controls-group">
+                      <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                      <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                      <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
                       <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
                     </div>
                   </div>
@@ -268,6 +299,36 @@
             <div class="live-badge"><span class="pulse"></span> AREA SECURE</div>
           </div>
           <div class="multi-grid">
+            <!-- Feed 1: Cam 01 (Live Entrance Webcam) -->
+            <div class="camera-card glass-panel" id="feeds-cam1-card">
+              <div class="camera-header"><span>Cam 01: Live Entrance (Webcam)</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> Live AI</span></div>
+              <div class="cam-gps-bar cam-gps-static">
+                <i class='bx bx-map-pin'></i>
+                <span>12.8615° N, 77.5645° E &nbsp;·&nbsp; DSATM Campus</span>
+                <span class="gps-mask-summary" id="feeds-cam1-mask-bar"><i class='bx bx-scan'></i> Active Entrance</span>
+              </div>
+              <div class="camera-view">
+                <video id="feeds-webcam-preview" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1);"></video>
+                <div class="overlay-stats">
+                  <div class="overlay-item"><i class='bx bx-scan'></i> Detections: <span id="feeds-cam1-count">0</span></div>
+                  <div class="overlay-item alert-overlay" id="feeds-cam1-density">Active</div>
+                  <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                </div>
+              </div>
+              <div class="feed-controls">
+                <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                <div class="zoom-controls-group">
+                  <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                  <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                  <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                  <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feed 2: Cam 02 (North Gate Main) -->
             <div class="camera-card glass-panel" id="feeds-cam2-card">
               <div class="camera-header"><span>Cam 02: North Gate Main</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> E2E Secure</span></div>
               <div class="cam-gps-bar cam-gps-static">
@@ -295,69 +356,20 @@
                 </div>
               </div>
             </div>
-            <div class="camera-card glass-panel">
-              <div class="camera-header"><span>Sector 7 - West Gate</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> Connected</span></div>
+
+            <!-- Feed 3: Cam 03 (Sector 7 - West Gate) -->
+            <div class="camera-card glass-panel" id="feeds-cam3-card">
+              <div class="camera-header"><span>Cam 03: Sector 7 - West Gate</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> Connected</span></div>
               <div class="cam-gps-bar cam-gps-static cam-gps-warn">
                 <i class='bx bx-map-pin'></i>
                 <span>12.9716° N, 77.5946° E &nbsp;·&nbsp; Bengaluru, KA</span>
-                <span class="gps-mask-summary gps-mask-alert"><i class='bx bx-mask'></i> 81.3% — ⚠ Violations</span>
+                <span class="gps-mask-summary gps-mask-alert"><i class='bx bx-mask'></i> 84.6% — ⚠ 50 No ID</span>
               </div>
-              <div class="camera-view"><img src="/camera2.png" style="filter: grayscale(0.5) contrast(1.2);">
+              <div class="camera-view">
+                <video id="feeds-cam3-video" src="/cam03_feed.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>
                 <div class="overlay-stats">
-                  <div class="overlay-item"><i class='bx bx-error'></i> Crowd Peaking</div>
-                  <div class="overlay-item alert-overlay warning-overlay">⚠ 18 Without Mask</div>
-                  <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
-                </div>
-              </div>
-              <div class="feed-controls">
-                <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
-                <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
-                <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
-                <div class="zoom-controls-group">
-                  <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
-                  <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
-                  <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
-                  <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
-                </div>
-              </div>
-            </div>
-            <div class="camera-card glass-panel">
-              <div class="camera-header"><span>Sector 2 - Food Court</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> Connected</span></div>
-              <div class="cam-gps-bar cam-gps-static">
-                <i class='bx bx-map-pin'></i>
-                <span>22.5726° N, 88.3639° E &nbsp;·&nbsp; Kolkata, WB</span>
-                <span class="gps-mask-summary"><i class='bx bx-mask'></i> 98.1% compliant</span>
-              </div>
-              <div class="camera-view"><img src="/camera1.png" style="filter: saturate(1.5) hue-rotate(180deg);">
-                <div class="overlay-stats">
-                  <div class="overlay-item"><i class='bx bx-check'></i> Nominal Flow</div>
-                  <div class="overlay-item alert-overlay">✓ All Masked</div>
-                  <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
-                </div>
-              </div>
-              <div class="feed-controls">
-                <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
-                <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
-                <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
-                <div class="zoom-controls-group">
-                  <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
-                  <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
-                  <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
-                  <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
-                </div>
-              </div>
-            </div>
-            <div class="camera-card glass-panel">
-              <div class="camera-header"><span>Sector 1 - VIP Lane</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> Connected</span></div>
-              <div class="cam-gps-bar cam-gps-static">
-                <i class='bx bx-map-pin'></i>
-                <span>13.0827° N, 80.2707° E &nbsp;·&nbsp; Chennai, TN</span>
-                <span class="gps-mask-summary"><i class='bx bx-mask'></i> 100% compliant</span>
-              </div>
-              <div class="camera-view"><img src="/camera2.png" style="filter: sepia(0.8) hue-rotate(220deg);">
-                <div class="overlay-stats">
-                  <div class="overlay-item"><i class='bx bx-check'></i> All Clear</div>
-                  <div class="overlay-item alert-overlay">✓ All Masked</div>
+                  <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span id="feeds-cam3-count">325</span></div>
+                  <div class="overlay-item alert-overlay warning-overlay">⚠ 50 Without ID</div>
                   <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
                 </div>
               </div>

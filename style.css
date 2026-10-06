@@ -394,8 +394,36 @@ body {
 
 .feeds-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  gap: 1.25rem;
+}
+
+#cam1-card, #feeds-cam1-card {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#cam2-card, #feeds-cam2-card {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+#cam3-card, #feeds-cam3-card {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+@media (max-width: 768px) {
+  .feeds-grid {
+    grid-template-columns: 1fr;
+  }
+  #cam1-card, #feeds-cam1-card,
+  #cam2-card, #feeds-cam2-card,
+  #cam3-card, #feeds-cam3-card {
+    grid-column: auto;
+    grid-row: auto;
+  }
 }
 
 .camera-card {
@@ -848,12 +876,19 @@ canvas {
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* Multi-Grid for Live Feeds */
+/* Multi-Grid for Live Feeds - 2x2 Quadrant Layout (Per Diagram) */
 .multi-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-rows: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto auto;
   gap: 1.5rem;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .multi-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Alert Table */

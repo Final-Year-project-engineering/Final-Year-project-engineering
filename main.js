@@ -3250,6 +3250,384 @@ class VideoMaskDetector {
 }
 
 // ============================================================
+// CAM 03 VIDEO MASK + EMOTION DETECTOR
+// ============================================================
+
+class VideoCam3Detector {
+  constructor() {
+    this.video      = document.getElementById('cam3-video');
+    this.container  = document.getElementById('cam3-card')?.querySelector('.camera-view');
+    this.countEl    = document.getElementById('cam3-count');
+    this.densityEl  = document.getElementById('cam3-density');
+
+    if (!this.video || !this.container) return;
+
+    if (this.densityEl) {
+      this.densityEl.innerText = '⏳ Loading AI…';
+      this.densityEl.style.color = '#f59e0b';
+    }
+
+    this.faceIdMap = [];
+    this.lastAlertTime = 0;
+    this.sensitivity = document.getElementById('sensitivity-range');
+
+    this.processCanvas        = document.createElement('canvas');
+    this.processCanvas.width  = 960;
+    this.processCanvas.height = 540;
+    this.processCtx = this.processCanvas.getContext('2d', { willReadFrequently: true });
+
+    this.initAI();
+  }
+
+  async initAI() {
+    const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+
+    const waitForFaceApi = () => new Promise((resolve, reject) => {
+      let tries = 0;
+      const t = setInterval(() => {
+        if (typeof faceapi !== 'undefined') { clearInterval(t); resolve(); }
+        if (++tries > 60) { clearInterval(t); reject(new Error('face-api not ready')); }
+      }, 250);
+    });
+
+    try {
+      await waitForFaceApi();
+
+      const alreadyLoaded =
+        faceapi.nets.ssdMobilenetv1.isLoaded &&
+        faceapi.nets.faceLandmark68Net.isLoaded &&
+        faceapi.nets.faceExpressionNet.isLoaded;
+
+      if (!alreadyLoaded) {
+        await Promise.all([
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL),
+          faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+        ]);
+      }
+
+      await new Promise(res => {
+        if (this.video.readyState >= 1) return res();
+        this.video.addEventListener('loadedmetadata', res, { once: true });
+      });
+
+      this.startDetectionLoop();
+    } catch (e) {
+      console.error('Cam03 AI init failed', e);
+      if (this.densityEl) {
+        this.densityEl.innerText = '⚠ AI unavailable';
+        this.densityEl.style.color = '#f59e0b';
+      }
+    }
+  }
+
+  assignId(box) {
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    let best = null, bestDist = 9999;
+    this.faceIdMap.forEach(f => {
+      const d = Math.hypot(cx - f.cx, cy - f.cy);
+      if (d < 80 && d < bestDist) { bestDist = d; best = f; }
+    });
+    if (best) { best.cx = cx; best.cy = cy; return best.id; }
+    const id = this.faceIdMap.length + 1;
+    this.faceIdMap.push({ id, cx, cy });
+    if (this.faceIdMap.length > 20) this.faceIdMap.shift();
+    return id;
+  }
+
+  isMaskWorn(landmarks, displayW, displayH) {
+    try {
+      const pc  = this.processCanvas;
+      const ctx = this.processCtx;
+      const sx  = pc.width  / displayW;
+      const sy  = pc.height / displayH;
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+      const nose       = landmarks.getNose();
+      const jaw        = landmarks.getJawOutline();
+      const mouth      = landmarks.getMouth();
+      const noseTip    = nose[6];
+      const chin       = jaw[8];
+      const leftCheek  = jaw[3];
+      const rightCheek = jaw[13];
+      const mouthMid   = {
+        x: (mouth[0].x + mouth[6].x) / 2,
+        y: (mouth[0].y + mouth[6].y) / 2
+      };
+
+      const samplePts = [noseTip, chin, leftCheek, rightCheek, mouthMid];
+      const grays = [], rVals = [], gVals = [], bVals = [];
+
+      for (const pt of samplePts) {
+        const px = clamp(Math.round(pt.x * sx) - 6, 0, pc.width  - 13);
+        const py = clamp(Math.round(pt.y * sy) - 6, 0, pc.height - 13);
+        const d  = ctx.getImageData(px, py, 12, 12).data;
+        for (let i = 0; i < d.length; i += 4) {
+          grays.push(d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
+          rVals.push(d[i] / 255);
+          gVals.push(d[i+1] / 255);
+          bVals.push(d[i+2] / 255);
+        }
+      }
+
+      if (grays.length < 10) return false;
+
+      const meanGray = grays.reduce((a, b) => a + b, 0) / grays.length;
+      const stdDev   = Math.sqrt(
+        grays.reduce((s, g) => s + (g - meanGray) ** 2, 0) / grays.length
+      );
+
+      let satSum = 0;
+      for (let i = 0; i < rVals.length; i++) {
+        const max = Math.max(rVals[i], gVals[i], bVals[i]);
+        const min = Math.min(rVals[i], gVals[i], bVals[i]);
+        satSum += max === 0 ? 0 : (max - min) / max;
+      }
+      const avgSat = satSum / rVals.length;
+
+      const sens      = this.sensitivity?.value ? (this.sensitivity.value / 100) : 0.75;
+      const varThresh = 10 + sens * 12;
+      const satThresh = 0.06 + sens * 0.06;
+
+      return stdDev < varThresh && avgSat < satThresh;
+
+    } catch {
+      return false;
+    }
+  }
+
+  isIdCardWorn(landmarks, box, displayW, displayH) {
+    try {
+      const pc  = this.processCanvas;
+      const ctx = this.processCtx;
+      const sx  = pc.width  / displayW;
+      const sy  = pc.height / displayH;
+
+      const jaw = landmarks?.getJawOutline ? landmarks.getJawOutline() : null;
+      const chinY = jaw ? jaw[8].y : (box.y + box.height);
+      const chinX = jaw ? jaw[8].x : (box.x + box.width / 2);
+
+      const chestDispW = box.width * 1.0;
+      const chestDispH = box.height * 1.15;
+      const chestDispX = chinX - chestDispW / 2;
+      const chestDispY = chinY + box.height * 0.08;
+
+      const px = Math.max(0, Math.min(pc.width - 10, Math.round(chestDispX * sx)));
+      const py = Math.max(0, Math.min(pc.height - 10, Math.round(chestDispY * sy)));
+      const pw = Math.max(10, Math.min(pc.width - px, Math.round(chestDispW * sx)));
+      const ph = Math.max(10, Math.min(pc.height - py, Math.round(chestDispH * sy)));
+
+      const d = ctx.getImageData(px, py, pw, ph).data;
+      if (d.length < 64) return { hasId: false, isDsatm: false, chestBox: null };
+
+      let blueCount = 0, yellowCount = 0, whiteCount = 0;
+      const count = d.length / 4;
+
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i+1], b = d[i+2];
+        if ((b > 65 && b > r + 30 && b > g + 20) || (b > 80 && b > r * 1.45 && b > g * 1.2)) {
+          blueCount++;
+        }
+        if (r > 145 && g > 125 && b < 100 && (r + g) > (b * 2.4) && Math.abs(r - g) < 45) {
+          yellowCount++;
+        }
+        if (r > 145 && g > 145 && b > 145 && Math.abs(r - g) < 18 && Math.abs(g - b) < 18) {
+          whiteCount++;
+        }
+      }
+
+      const blueRatio   = (blueCount   / count) * 100;
+      const yellowRatio = (yellowCount / count) * 100;
+      const whiteRatio  = (whiteCount  / count) * 100;
+
+      const hasId = (blueRatio >= 1.8) || (yellowRatio >= 0.7 && whiteRatio >= 5.5) || (blueRatio >= 0.9 && whiteRatio >= 5.5);
+
+      if (!hasId) return { hasId: false, isDsatm: false, chestBox: null };
+
+      return {
+        hasId: true,
+        isDsatm: true,
+        chestBox: { x: chestDispX, y: chestDispY, width: chestDispW, height: chestDispH }
+      };
+    } catch {
+      return { hasId: false, isDsatm: false, chestBox: null };
+    }
+  }
+
+  startDetectionLoop() {
+    // Reuse existing canvas element injected in HTML
+    const drawCanvas = document.getElementById('cam3-canvas');
+    if (!drawCanvas) return;
+
+    if (this.densityEl) {
+      this.densityEl.innerText   = 'Scanning…';
+      this.densityEl.style.color = '#10b981';
+    }
+
+    let lastRun = 0;
+    let running = false;
+    const INTERVAL = 600;
+
+    const loop = async (ts) => {
+      requestAnimationFrame(loop);
+
+      if (running) return;
+      if (ts - lastRun < INTERVAL) return;
+      if (this.video.paused || this.video.readyState < 2) return;
+
+      const displayW = this.video.clientWidth;
+      const displayH = this.video.clientHeight;
+      if (!displayW || !displayH) return;
+
+      lastRun = ts;
+      running = true;
+
+      try {
+        this.processCtx.drawImage(
+          this.video, 0, 0,
+          this.processCanvas.width, this.processCanvas.height
+        );
+
+        const displaySize = { width: displayW, height: displayH };
+
+        const detections = await faceapi
+          .detectAllFaces(
+            this.processCanvas,
+            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.30, maxResults: 50 })
+          )
+          .withFaceLandmarks()
+          .withAgeAndGender()
+          .withFaceExpressions();
+
+        faceapi.matchDimensions(drawCanvas, displaySize);
+        const resized = faceapi.resizeResults(detections, displaySize);
+
+        const ctx = drawCanvas.getContext('2d');
+        ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+
+        if (this.countEl) this.countEl.innerText = detections.length;
+
+        let noMaskCount = 0;
+        let noIdCount   = 0;
+
+        resized.forEach(det => {
+          const { box }  = det.detection;
+          const faceId   = this.assignId(box);
+
+          const masked   = this.isMaskWorn(det.landmarks, displayW, displayH);
+          const idInfo   = this.isIdCardWorn(det.landmarks, box, displayW, displayH);
+          const hasId    = idInfo.hasId;
+
+          const age      = det.age    ? Math.round(det.age) : '?';
+          const aiGender = det.gender ? (det.gender === 'male' ? 'Male' : 'Female') : '?';
+
+          let emotion = '?';
+          if (det.expressions) {
+            const sorted = Object.entries(det.expressions).sort((a, b) => b[1] - a[1]);
+            emotion = sorted[0][0];
+          }
+
+          if (!masked) noMaskCount++;
+          if (!hasId)  noIdCount++;
+
+          // Corner-bracket bounding box
+          const color = masked ? '#10b981' : '#ef4444';
+          ctx.strokeStyle = color;
+          ctx.lineWidth   = 2.5;
+          const bLen = 16;
+          [[box.x, box.y], [box.x + box.width, box.y],
+           [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]
+          ].forEach(([cx, cy], i) => {
+            ctx.beginPath();
+            ctx.moveTo(cx + (i % 2 === 0 ? bLen : -bLen), cy);
+            ctx.lineTo(cx, cy);
+            ctx.lineTo(cx, cy + (i < 2 ? bLen : -bLen));
+            ctx.stroke();
+          });
+
+          // Top label
+          const label = hasId
+            ? (masked ? `ID: OK · MASK ON · ${emotion.toUpperCase()}` : `ID: OK · NO MASK · ${emotion.toUpperCase()}`)
+            : (masked ? `NO ID ⚠ · MASK ON · ${emotion.toUpperCase()}` : `NO ID · NO MASK · ${emotion.toUpperCase()}`);
+          ctx.font = 'bold 11px Inter, monospace';
+          const labelW = ctx.measureText(label).width + 16;
+          ctx.fillStyle = masked ? 'rgba(16,185,129,0.92)' : 'rgba(239,68,68,0.92)';
+          ctx.beginPath();
+          ctx.roundRect(box.x, box.y - 28, labelW, 24, 4);
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.fillText(label, box.x + 8, box.y - 11);
+
+          // Bottom info label
+          const infoLabel = `Visitor · ID: ${hasId ? 'OK' : 'OFF'} · ~${age}yr · ${emotion}`;
+          ctx.font = '10px Inter, monospace';
+          const infoW = ctx.measureText(infoLabel).width + 14;
+          ctx.fillStyle = 'rgba(10,15,30,0.82)';
+          ctx.beginPath();
+          ctx.roundRect(box.x, box.y + box.height + 2, infoW, 20, 4);
+          ctx.fill();
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillText(infoLabel, box.x + 7, box.y + box.height + 15);
+        });
+
+        // Density overlay
+        if (this.densityEl) {
+          if (noMaskCount === 0) {
+            this.densityEl.innerText = detections.length > 0
+              ? `✓ ${detections.length} Detected – All Clear`
+              : 'Scanning…';
+            this.densityEl.style.color = '#10b981';
+            this.densityEl.classList.remove('warning-overlay');
+          } else {
+            this.densityEl.innerText = `⚠ ${noMaskCount}/${detections.length} WITHOUT MASK`;
+            this.densityEl.style.color = '#ef4444';
+            this.densityEl.classList.add('warning-overlay');
+          }
+        }
+
+        // Sync to analytics
+        if (window._dashSim?.camIdStats?.cam3) {
+          const total     = detections.length;
+          const compliant = total - noIdCount;
+          window._dashSim.camIdStats.cam3 = {
+            total,
+            compliant,
+            violations: noIdCount,
+            rate: total > 0 ? Math.round((compliant / total) * 100) : 0
+          };
+        }
+
+        // Alert on violation
+        const now = Date.now();
+        if (noMaskCount > 0 && now - this.lastAlertTime > 8000) {
+          this.lastAlertTime = now;
+          window._dashSim?.addAlert({
+            type: 'critical',
+            title: 'No-Mask Violation – Cam 03',
+            message: `${noMaskCount} person(s) without mask — West Gate Feed`,
+            icon: 'bx-mask',
+            zone: 'Cam 03 – West Gate'
+          }, new Date().toLocaleTimeString([], {
+            hour: '2-digit', minute: '2-digit'
+          }) + ' (Live)');
+          if (window._dashSim) window._dashSim.activeAlerts++;
+          window._dashSim?.updateAlertCounters();
+        }
+
+      } catch (err) {
+        console.error('Cam03 AI detection error', err);
+      }
+
+      running = false;
+    };
+
+    requestAnimationFrame(loop);
+  }
+}
+
+// ============================================================
 // VIOLATORS PANEL
 // ============================================================
 
@@ -3733,6 +4111,29 @@ document.addEventListener('DOMContentLoaded', () => {
   window._dashSim = new DashboardSim();
   window._webcamSim = new WebcamMaskDetector();
   window._cam2Sim = new VideoMaskDetector();
+  window._cam3Sim = new VideoCam3Detector();
+
+  // ── Sync Cam 01 stats & stream into Live Feeds "Cam 01: Live Entrance" ──
+  (function syncCam1ToFeeds() {
+    const feedsPreview = document.getElementById('feeds-webcam-preview');
+    const webcam = document.getElementById('webcam');
+    const feedsCount = document.getElementById('feeds-cam1-count');
+    const feedsDensity = document.getElementById('feeds-cam1-density');
+
+    setInterval(() => {
+      if (webcam && webcam.srcObject && feedsPreview && feedsPreview.srcObject !== webcam.srcObject) {
+        feedsPreview.srcObject = webcam.srcObject;
+        feedsPreview.play().catch(() => {});
+      }
+      const c1Count = document.getElementById('cam1-count');
+      const c1Density = document.getElementById('cam1-density');
+      if (c1Count && feedsCount) feedsCount.innerText = c1Count.innerText;
+      if (c1Density && feedsDensity) {
+        feedsDensity.innerText = c1Density.innerText;
+        feedsDensity.style.color = c1Density.style.color;
+      }
+    }, 1000);
+  })();
 
   // ── Sync Cam 02 stats into Live Feeds "Cam 02: North Gate Main" ──────────
   (function syncCam2ToFeeds() {
@@ -3755,6 +4156,23 @@ document.addEventListener('DOMContentLoaded', () => {
         feedsMaskBar.innerHTML = cam2MaskBar.innerHTML;
         feedsMaskBar.style.color = cam2MaskBar.style.color;
       }
+    }, 1000);
+  })();
+
+  // ── Sync Cam 03 stats into Live Feeds "Cam 03: Sector 7 - West Gate" ──────
+  (function syncCam3ToFeeds() {
+    const v1 = document.getElementById('cam3-video');
+    const v2 = document.getElementById('feeds-cam3-video');
+    [v1, v2].forEach(v => {
+      if (v) {
+        v.play().catch(() => {});
+      }
+    });
+
+    const feedsCountEl = document.getElementById('feeds-cam3-count');
+    setInterval(() => {
+      const cam3Count = document.getElementById('cam3-count');
+      if (cam3Count && feedsCountEl) feedsCountEl.innerText = cam3Count.innerText;
     }, 1000);
   })();
 
