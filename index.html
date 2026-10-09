@@ -241,6 +241,39 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Camera 4 -->
+                <div class="camera-card glass-panel" id="cam4-card">
+                  <div class="camera-header">
+                    <span>Cam 04: Sector 2 - Food Court</span>
+                    <span class="status-encryption secure"><i class='bx bx-check-shield'></i> Connected</span>
+                  </div>
+                  <div class="cam-gps-bar cam-gps-static">
+                    <i class='bx bx-map-pin'></i>
+                    <span>12.9720° N, 77.5950° E &nbsp;·&nbsp; Bengaluru, KA</span>
+                    <span class="gps-mask-summary" id="cam4-mask-bar" style="color:var(--accent-green);"><i class='bx bx-id-card'></i> 97.2% compliant</span>
+                  </div>
+                  <div class="camera-view" style="position:relative;">
+                    <video id="cam4-video" src="/cam03_feed.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+                    <canvas id="cam4-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;"></canvas>
+                    <div class="overlay-stats">
+                      <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span id="cam4-count">0</span></div>
+                      <div class="overlay-item" id="cam4-density" style="color:#f59e0b;">⏳ Loading AI…</div>
+                      <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                    </div>
+                  </div>
+                  <div class="feed-controls">
+                    <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                    <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                    <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                    <div class="zoom-controls-group">
+                      <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                      <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                      <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                      <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Live Persons Info Table -->
@@ -370,6 +403,35 @@
                 <div class="overlay-stats">
                   <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span id="feeds-cam3-count">325</span></div>
                   <div class="overlay-item alert-overlay warning-overlay">⚠ 50 Without ID</div>
+                  <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
+                </div>
+              </div>
+              <div class="feed-controls">
+                <button class="control-btn btn-night-vision-card" title="Toggle Night Vision"><i class='bx bx-low-vision'></i></button>
+                <button class="control-btn btn-snapshot-card" title="Capture Snapshot"><i class='bx bx-camera'></i></button>
+                <button class="control-btn btn-fullscreen-card" title="Toggle Fullscreen Mode"><i class='bx bx-fullscreen'></i></button>
+                <div class="zoom-controls-group">
+                  <button class="control-btn btn-zoom-out-card" title="Zoom Out"><i class='bx bx-zoom-out'></i></button>
+                  <input type="range" min="1" max="4" step="0.1" value="1" class="zoom-range-input card-zoom-range" title="Camera Zoom Level">
+                  <button class="control-btn btn-zoom-in-card" title="Zoom In"><i class='bx bx-zoom-in'></i></button>
+                  <button class="control-btn btn-zoom-reset-card" title="Reset Zoom"><i class='bx bx-reset'></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Feed 4: Cam 04 (Sector 2 - Food Court) -->
+            <div class="camera-card glass-panel" id="feeds-cam4-card">
+              <div class="camera-header"><span>Cam 04: Sector 2 - Food Court</span><span class="status-encryption secure"><i class='bx bx-check-shield'></i> Connected</span></div>
+              <div class="cam-gps-bar cam-gps-static">
+                <i class='bx bx-map-pin'></i>
+                <span>12.9720° N, 77.5950° E &nbsp;·&nbsp; Bengaluru, KA</span>
+                <span class="gps-mask-summary" id="feeds-cam4-mask-bar" style="color:var(--accent-green);"><i class='bx bx-id-card'></i> 97.2% compliant</span>
+              </div>
+              <div class="camera-view">
+                <video id="feeds-cam4-video" src="/cam03_feed.mp4" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+                <div class="overlay-stats">
+                  <div class="overlay-item"><i class='bx bx-scan'></i> Target Detections: <span id="feeds-cam4-count">0</span></div>
+                  <div class="overlay-item alert-overlay" id="feeds-cam4-density">Active</div>
                   <div class="overlay-item zoom-badge" title="Scroll wheel or double click to zoom"><i class='bx bx-search-alt-2'></i> <span class="zoom-val">1.0x</span></div>
                 </div>
               </div>

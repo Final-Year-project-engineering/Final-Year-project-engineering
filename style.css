@@ -414,13 +414,19 @@ body {
   grid-row: 2;
 }
 
+#cam4-card, #feeds-cam4-card {
+  grid-column: 2;
+  grid-row: 2;
+}
+
 @media (max-width: 768px) {
   .feeds-grid {
     grid-template-columns: 1fr;
   }
   #cam1-card, #feeds-cam1-card,
   #cam2-card, #feeds-cam2-card,
-  #cam3-card, #feeds-cam3-card {
+  #cam3-card, #feeds-cam3-card,
+  #cam4-card, #feeds-cam4-card {
     grid-column: auto;
     grid-row: auto;
   }
