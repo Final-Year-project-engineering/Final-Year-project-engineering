@@ -2058,127 +2058,75 @@ class WebcamMaskDetector {
     const isMaskWorn = (landmarks, scaleX, scaleY) => {
       try {
         if (!landmarks) return false;
+        const nose       = landmarks.getNose();
+        const jaw        = landmarks.getJawOutline();
+        const mouth      = landmarks.getMouth();
+        if (!nose || !mouth || !jaw) return false;
 
-        const nose = landmarks.getNose();
-        const mouth = landmarks.getMouth();
-        const jaw = landmarks.getJawOutline();
-        const leftEye = landmarks.getLeftEye();
-        const rightEye = landmarks.getRightEye();
-
-        if (!nose || !mouth || !leftEye || !rightEye || !jaw) return false;
+        const noseTip    = nose[6];
+        const chin       = jaw[8];
+        const leftCheek  = jaw[3];
+        const rightCheek = jaw[13];
+        const mouthMid   = {
+          x: (mouth[0].x + mouth[6].x) / 2,
+          y: (mouth[0].y + mouth[6].y) / 2
+        };
 
         const imgW = extractCanvas.width;
         const imgH = extractCanvas.height;
 
-        // Sample helper to safely get average RGB of a small patch in extractCanvas
-        const samplePatch = (pt, radius = 2) => {
-          if (!pt) return [128, 128, 128];
-          const px = Math.round(pt.x * scaleX);
-          const py = Math.round(pt.y * scaleY);
-          const x0 = Math.max(0, Math.min(imgW - 1, px - radius));
-          const y0 = Math.max(0, Math.min(imgH - 1, py - radius));
-          const w = Math.min(imgW - x0, radius * 2 + 1);
-          const h = Math.min(imgH - y0, radius * 2 + 1);
-          if (w <= 0 || h <= 0) return [128, 128, 128];
-          const imgData = extractCtx.getImageData(x0, y0, w, h).data;
-          let rSum = 0, gSum = 0, bSum = 0, count = 0;
-          for (let i = 0; i < imgData.length; i += 4) {
-            rSum += imgData[i];
-            gSum += imgData[i + 1];
-            bSum += imgData[i + 2];
-            count++;
+        const samplePts = [noseTip, chin, leftCheek, rightCheek, mouthMid];
+        const grays = [], rVals = [], gVals = [], bVals = [];
+
+        for (const pt of samplePts) {
+          const px = Math.max(0, Math.min(imgW - 13, Math.round(pt.x * scaleX) - 6));
+          const py = Math.max(0, Math.min(imgH - 13, Math.round(pt.y * scaleY) - 6));
+          const d  = extractCtx.getImageData(px, py, 12, 12).data;
+          for (let i = 0; i < d.length; i += 4) {
+            grays.push(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+            rVals.push(d[i] / 255);
+            gVals.push(d[i + 1] / 255);
+            bVals.push(d[i + 2] / 255);
           }
-          if (count === 0) return [128, 128, 128];
-          return [rSum / count, gSum / count, bSum / count];
-        };
-
-        // 1. Reference Skin Tone from upper face:
-        // Glabella (between the eyes) and under-eye cheeks (guaranteed hair-free bare skin)
-        const glabella = {
-          x: (leftEye[3].x + rightEye[0].x) / 2,
-          y: (leftEye[3].y + rightEye[0].y) / 2
-        };
-        const leftCheekSkin = {
-          x: leftEye[0].x,
-          y: leftEye[0].y + (nose[3].y - leftEye[0].y) * 0.45
-        };
-        const rightCheekSkin = {
-          x: rightEye[3].x,
-          y: rightEye[3].y + (nose[3].y - rightEye[3].y) * 0.45
-        };
-
-        const skinRef1 = samplePatch(glabella, 3);
-        const skinRef2 = samplePatch(leftCheekSkin, 3);
-        const skinRef3 = samplePatch(rightCheekSkin, 3);
-
-        const rSkin = (skinRef1[0] + skinRef2[0] + skinRef3[0]) / 3;
-        const gSkin = (skinRef1[1] + skinRef2[1] + skinRef3[1]) / 3;
-        const bSkin = (skinRef1[2] + skinRef2[2] + skinRef3[2]) / 3;
-        const skinLum = (rSkin + gSkin + bSkin) / 3;
-
-        // 2. Lower Face Samples (Nose tip, Philtrum/Upper Lip, Center Mouth, Lower Lip, Chin)
-        const noseTip = samplePatch(nose[6], 2);
-        const upperLip = samplePatch(mouth[3], 2);
-        const centerMouth = samplePatch(mouth[14] || mouth[0], 2);
-        const lowerLip = samplePatch(mouth[9], 2);
-        const chin = samplePatch(jaw[8], 3);
-
-        const lowerSamples = [noseTip, upperLip, centerMouth, lowerLip, chin];
-        const rLower = lowerSamples.reduce((acc, s) => acc + s[0], 0) / lowerSamples.length;
-        const gLower = lowerSamples.reduce((acc, s) => acc + s[1], 0) / lowerSamples.length;
-        const bLower = lowerSamples.reduce((acc, s) => acc + s[2], 0) / lowerSamples.length;
-        const lowerLum = (rLower + gLower + bLower) / 3;
-
-        // 3. Mask Indicators:
-        // A. Surgical Blue / Cyan Mask (High Blue relative to Green/Red on lower face)
-        const isBlueMask = (bLower > rLower + 8 && bLower > 50) || 
-                           (centerMouth[2] > centerMouth[0] + 10 && centerMouth[2] > 50);
-
-        // B. Dark / Black Mask (Lower face is noticeably darker than bare skin)
-        const isDarkMask = (lowerLum < 55 && skinLum > 75 && (skinLum - lowerLum) > 30) ||
-                           (centerMouth[0] < 45 && centerMouth[1] < 45 && centerMouth[2] < 45 && skinLum > 70);
-
-        // C. White / Light Surgical Mask (Low saturation + high luminance without natural lip tone)
-        const lowerSat = Math.max(rLower, gLower, bLower) - Math.min(rLower, gLower, bLower);
-        const isWhiteMask = (lowerLum > 135 && lowerSat < 14 && (rSkin - bSkin) > 18);
-
-        // D. General Mask Covering (Color deviation from upper skin reference)
-        const colorDiff = Math.hypot(rLower - rSkin, gLower - gSkin, bLower - bSkin);
-
-        // E. Natural Lip check (Bare lips have natural reddish chroma: R > G + 12 and R > B + 16)
-        const lipRedness = Math.max(upperLip[0] - upperLip[1], lowerLip[0] - lowerLip[1], centerMouth[0] - centerMouth[1]);
-        const hasVisibleLips = (lipRedness >= 12) && (centerMouth[0] > centerMouth[2] + 14);
-
-        // If lips are naturally exposed and visible => definitely NO MASK
-        if (hasVisibleLips && !isBlueMask && !isDarkMask) {
-          return false;
         }
 
-        if (isBlueMask || isDarkMask || isWhiteMask) {
-          return true;
+        if (grays.length < 10) return false;
+
+        // Texture variance: bare skin and lips have natural texture; masks are smooth and flat
+        const meanGray = grays.reduce((a, b) => a + b, 0) / grays.length;
+        const stdDev   = Math.sqrt(grays.reduce((s, g) => s + (g - meanGray) ** 2, 0) / grays.length);
+
+        // Saturation check: bare lips/skin have higher natural saturation; surgical masks have low saturation
+        let satSum = 0;
+        for (let i = 0; i < rVals.length; i++) {
+          const max = Math.max(rVals[i], gVals[i], bVals[i]);
+          const min = Math.min(rVals[i], gVals[i], bVals[i]);
+          satSum += max === 0 ? 0 : (max - min) / max;
         }
+        const avgSat = satSum / rVals.length;
 
-        const sensVal = this.sensitivity?.value ? Number(this.sensitivity.value) : 50;
-        const diffThreshold = 46 - (sensVal - 50) * 0.3;
+        const sens = this.sensitivity?.value ? (Number(this.sensitivity.value) / 100) : 0.75;
+        const varThresh = 10 + sens * 12;
+        const satThresh = 0.06 + sens * 0.06;
 
-        return colorDiff > diffThreshold;
+        return stdDev < varThresh && avgSat < satThresh;
       } catch (e) {
-        return false;
+        return false; // Default: NO MASK
       }
     };
 
     const isIdCardWorn = (box, landmarks, scaleX, scaleY) => {
       try {
         const jaw = landmarks?.getJawOutline ? landmarks.getJawOutline() : null;
-        // Use chin bottom as anchor for chest region
+        // Anchor chest region below the chin
         const chinY = jaw ? jaw[8].y : (box.y + box.height);
         const chinX = jaw ? jaw[8].x : (box.x + box.width / 2);
 
-        // Generous chest ROI: wide & tall to ensure the lanyard & badge are always inside
-        const chestDispW = box.width * 1.8;
-        const chestDispH = box.height * 1.8;
+        // Centered upper chest ROI (where ID cards and lanyards hang)
+        const chestDispW = box.width * 0.9;
+        const chestDispH = box.height * 1.25;
         const chestDispX = chinX - chestDispW / 2;
-        const chestDispY = chinY; // start right at chin bottom
+        const chestDispY = chinY + box.height * 0.08;
 
         const imgW = extractCanvas.width;
         const imgH = extractCanvas.height;
@@ -2197,142 +2145,47 @@ class WebcamMaskDetector {
         }
 
         const count = len / 4;
-        let totalBluePixels = 0;    // any blue-dominant pixel anywhere in chest ROI
+        let lanyardBluePixels = 0;
         let yellowBannerPixels = 0;
         let whiteCardPixels = 0;
-        let darkBluePixels = 0;     // very saturated blue (ideal lanyard)
 
         for (let i = 0; i < len; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
 
-          // DSATM Royal Blue Lanyard — multiple conditions for different webcam exposures
-          // Condition A: Strong blue dominance
-          const condA = (b >= 50) && ((b - r) >= 12) && ((b - g) >= 6);
-          // Condition B: High blue ratio
-          const condB = (b >= 65) && (b / Math.max(1, r) >= 1.15) && (b / Math.max(1, g) >= 1.10);
-          // Condition C: Very saturated royal blue
-          const condC = (b >= 80) && ((b - r) >= 20) && ((b - g) >= 12);
+          // 1. Saturated Royal Blue Lanyard (must be vividly blue, not dark shirt or grey shadow)
+          if ((b >= 80 && (b - r) >= 28 && (b - g) >= 18) || 
+              (b >= 95 && (b / Math.max(1, r)) >= 1.4 && (b / Math.max(1, g)) >= 1.25)) {
+            lanyardBluePixels++;
+          }
 
-          if (condC) darkBluePixels++;
-          if (condA || condB || condC) totalBluePixels++;
-
-          // DSATM Gold/Yellow Header Banner — R+Y warm tones, B suppressed
-          if (r >= 100 && g >= 80 && b <= 120 && (r + g) >= (b * 1.8) && Math.abs(r - g) <= 55) {
+          // 2. DSATM Yellow Header Banner (must be bright saturated yellow/gold, not bare skin/neck)
+          if (r >= 140 && g >= 115 && b <= 95 && (r + g) >= (b * 2.2) && Math.abs(r - g) <= 45) {
             yellowBannerPixels++;
           }
 
-          // White/Light ID Card body — high brightness, neutral color
-          if (r > 130 && g > 130 && b > 130 && Math.abs(r - g) < 30 && Math.abs(g - b) < 30) {
+          // 3. White ID Card Body (high brightness and neutral color)
+          if (r > 150 && g > 150 && b > 150 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
             whiteCardPixels++;
           }
         }
 
-        const blueRatio = (totalBluePixels / count) * 100;
-        const darkBlueRatio = (darkBluePixels / count) * 100;
+        const blueRatio   = (lanyardBluePixels / count) * 100;
         const yellowRatio = (yellowBannerPixels / count) * 100;
-        const whiteRatio = (whiteCardPixels / count) * 100;
+        const whiteRatio  = (whiteCardPixels  / count) * 100;
 
-        // Debug: log pixel stats each detection cycle (visible in browser console)
-        console.debug('[ID] blue:', totalBluePixels, 'darkBlue:', darkBluePixels,
-                      'yellow:', yellowBannerPixels, 'white:', whiteCardPixels,
-                      'blueRatio%:', blueRatio.toFixed(2),
-                      'darkBlue%:', darkBlueRatio.toFixed(2),
-                      'yellow%:', yellowRatio.toFixed(2),
-                      'white%:', whiteRatio.toFixed(2),
-                      'sw:', sw, 'sh:', sh);
+        // A lanyard is a narrow vertical ribbon (between 3% and 25% of chest ROI).
+        // If blue covers > 40%, it's a blue shirt, not an ID lanyard.
+        const hasLanyardStrap   = blueRatio >= 3.0 && blueRatio <= 28.0;
+        // White card face must be a distinct badge on the chest (6% to 40%).
+        const hasWhiteCardBadge = whiteRatio >= 6.0 && whiteRatio <= 40.0;
+        const hasYellowBanner   = yellowRatio >= 1.5;
 
-        // ── Strict ratio-based thresholds (v3 — white card mandatory) ─────────
-        // White card body is now REQUIRED in every detection path.
-        // Background windows/blue clothing/reflections alone cannot trigger
-        // ID OK — you must also see the physical white card face.
-
-        // 1. Royal-blue lanyard covers ≥5% of chest ROI
-        const hasBlueStrap = blueRatio >= 5.0;
-        // 2. Very saturated DSATM royal-blue covers ≥2%
-        const hasRoyalBlue = darkBlueRatio >= 2.0;
-        // 3. Gold/yellow DSATM banner header covers ≥2%
-        const hasYellow = yellowRatio >= 2.0;
-        // 4. White ID card body covers ≥15% — mandatory in every path
-        const hasWhiteCard = whiteRatio >= 15.0;
-
-        // Vertical-streak check: split chest ROI into 4 horizontal bands and
-        // verify strong blue appears in at least 3 of them (real lanyard hangs
-        // continuously; background blue is typically localised to 1-2 bands).
-       // Vertical lanyard check
-// Check whether blue appears around the SAME horizontal position
-// across multiple vertical sections.
-
-const bandH = Math.max(1, Math.floor(sh / 6));
-const bandW = Math.max(1, Math.floor(sw / 8));
-
-const blueGrid = Array.from(
-  { length: 6 },
-  () => Array(8).fill(0)
-);
-
-for (let bi = 0; bi < len; bi += 4) {
-
-  const pixelIndex = bi / 4;
-
-  const pixelRow = Math.floor(pixelIndex / Math.max(1, sw));
-  const pixelCol = pixelIndex % Math.max(1, sw);
-
-  const row = Math.min(
-    5,
-    Math.floor(pixelRow / bandH)
-  );
-
-  const col = Math.min(
-    7,
-    Math.floor(pixelCol / bandW)
-  );
-
-  const rp = data[bi];
-  const gp = data[bi + 1];
-  const bp = data[bi + 2];
-
-  if (
-    bp >= 50 &&
-    (bp - rp) >= 12 &&
-    (bp - gp) >= 6
-  ) {
-    blueGrid[row][col]++;
-  }
-}
-
-// Find the column containing blue in the most rows
-let maxBlueRows = 0;
-
-for (let col = 0; col < 8; col++) {
-
-  let activeRows = 0;
-
-  for (let row = 0; row < 6; row++) {
-
-    if (blueGrid[row][col] >= 10) {
-      activeRows++;
-    }
-  }
-
-  maxBlueRows = Math.max(maxBlueRows, activeRows);
-}
-
-// Blue must appear vertically in at least 4 of 6 rows
-const hasVerticalLanyard = maxBlueRows >= 4;
-
-        // ID confirmed only when white card is visible PLUS one of:
-        //   • Strong blue lanyard spanning ≥3 vertical bands, OR
-        //   • Very saturated royal-blue (most definitive DSATM lanyard colour), OR
-        //   • Gold/yellow DSATM header banner
-        // hasWhiteCard is required in ALL paths — no card visible = no ID.
-        const hasId =
-    hasWhiteCard &&
-    hasBlueStrap &&
-    hasVerticalLanyard &&
-    hasYellow; 
-        const isDsatm = hasId;
+        // An ID card is detected ONLY if a white badge is physically present
+        // alongside a royal-blue lanyard or institutional yellow banner
+        const hasId = hasWhiteCardBadge && (hasLanyardStrap || hasYellowBanner);
+        const isDsatm = hasId && (hasYellowBanner || blueRatio >= 4.0);
 
         if (!hasId) {
           return {
@@ -2344,21 +2197,12 @@ const hasVerticalLanyard = maxBlueRows >= 4;
           };
         }
 
-       const confidence = Math.min(
-  98,
-  Math.max(
-    85,
-    Math.round(
-      85 +
-      Math.min(8, blueRatio) +
-      Math.min(5, yellowRatio)
-    )
-  )
-);
+        const confidence = Math.min(98, Math.max(85, Math.round(85 + Math.min(8, blueRatio) + Math.min(5, yellowRatio))));
+
         return {
           hasId: true,
-          isDsatm: true,
-          cardName: 'DSATM College ID Card',
+          isDsatm,
+          cardName: isDsatm ? 'DSATM College ID Card' : 'ID Card',
           confidence,
           chestBox: {
             x: chestDispX,
@@ -2368,7 +2212,6 @@ const hasVerticalLanyard = maxBlueRows >= 4;
           }
         };
       } catch (e) {
-        console.error('[ID] Error:', e);
         return {
           hasId: false,
           isDsatm: false,
@@ -2423,12 +2266,7 @@ const hasVerticalLanyard = maxBlueRows >= 4;
           extractCanvas.height = this.video.videoHeight || 480;
         }
 
-        extractCtx.save();
-
-        // Draw video MIRRORED to match the displayed scaleX(-1) transform,
-        // so face-api landmark x-coordinates align with sampled pixel positions.
-        extractCtx.translate(extractCanvas.width, 0);
-        extractCtx.scale(-1, 1);
+        // Draw unmirrored so face-api landmark coordinates align directly with pixel positions
         extractCtx.drawImage(
           this.video,
           0,
@@ -2436,8 +2274,6 @@ const hasVerticalLanyard = maxBlueRows >= 4;
           extractCanvas.width,
           extractCanvas.height
         );
-
-        extractCtx.restore();
 
         const scaleX = extractCanvas.width / displaySize.width;
         const scaleY = extractCanvas.height / displaySize.height;
@@ -2987,84 +2823,62 @@ class VideoMaskDetector {
       const chinY = jaw ? jaw[8].y : (box.y + box.height);
       const chinX = jaw ? jaw[8].x : (box.x + box.width / 2);
 
-      const scanRegion = (dispX, dispY, dispW, dispH) => {
-        const px = Math.max(0, Math.min(pc.width  - 2, Math.round(dispX * sx)));
-        const py = Math.max(0, Math.min(pc.height - 2, Math.round(dispY * sy)));
-        const pw = Math.max(2,  Math.min(pc.width  - px, Math.round(dispW * sx)));
-        const ph = Math.max(2,  Math.min(pc.height - py, Math.round(dispH * sy)));
-        const d  = ctx.getImageData(px, py, pw, ph).data;
-        if (d.length < 16) return null;
-        let blueCount = 0, navyCount = 0, yellowCount = 0, whiteCount = 0;
-        const total = d.length / 4;
-        for (let i = 0; i < d.length; i += 4) {
-          const r = d[i], g = d[i+1], b = d[i+2];
-          if ((b > 55 && b > r + 20 && b > g + 15) || (b > 70 && b > r * 1.3 && b > g * 1.1)) blueCount++;
-          if (b > 30 && b > r * 1.5 && b > g * 1.3 && (r+g+b) > 40 && (r+g+b) < 320) navyCount++;
-          if (r > 130 && g > 110 && b < 110 && (r+g) > (b*2.2) && Math.abs(r-g) < 55) yellowCount++;
-          if (r > 130 && g > 130 && b > 130 && Math.abs(r-g) < 22 && Math.abs(g-b) < 22) whiteCount++;
-        }
-        return {
-          blueRatio:   (blueCount   / total) * 100,
-          navyRatio:   (navyCount   / total) * 100,
-          yellowRatio: (yellowCount / total) * 100,
-          whiteRatio:  (whiteCount  / total) * 100
-        };
-      };
-
-      const checkRatios = (s) => s && (
-        (s.blueRatio  >= 0.8) ||
-        (s.navyRatio  >= 0.3) ||
-        (s.yellowRatio >= 0.4 && s.whiteRatio >= 3.0) ||
-        (s.blueRatio  >= 0.4 && s.whiteRatio >= 3.0) ||
-        (s.blueRatio  >= 0.3 && s.navyRatio  >= 0.2)
-      );
-
-      // Region 1: Lanyard strip (narrow vertical band, neck to chest)
-      const lanyardW = box.width * 0.25;
-      const lanyardH = box.height * 1.6;
-      const lanyardX = chinX - lanyardW / 2;
-      const lanyardY = chinY - box.height * 0.05;
-      const ls = scanRegion(lanyardX, lanyardY, lanyardW, lanyardH);
-      if (ls && (ls.navyRatio >= 0.3 || ls.blueRatio >= 0.5)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: lanyardX, y: lanyardY, width: lanyardW, height: lanyardH } };
-      }
-
-      // Region 2: Chest badge (below chin)
-      const chestW = box.width * 1.1;
-      const chestH = box.height * 1.0;
+      // Focus strictly on the upper chest below chin (where lanyards & ID badges hang)
+      const chestW = box.width * 0.9;
+      const chestH = box.height * 1.2;
       const chestX = chinX - chestW / 2;
       const chestY = chinY + box.height * 0.05;
-      const cs = scanRegion(chestX, chestY, chestW, chestH);
-      if (checkRatios(cs)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: chestX, y: chestY, width: chestW, height: chestH } };
+
+      const px = Math.max(0, Math.min(pc.width  - 2, Math.round(chestX * sx)));
+      const py = Math.max(0, Math.min(pc.height - 2, Math.round(chestY * sy)));
+      const pw = Math.max(2,  Math.min(pc.width  - px, Math.round(chestW * sx)));
+      const ph = Math.max(2,  Math.min(pc.height - py, Math.round(chestH * sy)));
+
+      const imgData = ctx.getImageData(px, py, pw, ph);
+      const d = imgData.data;
+      if (d.length < 64) return { hasId: false, isDsatm: false, chestBox: null };
+
+      let blueCount = 0;
+      let whiteCount = 0;
+      let yellowCount = 0;
+      const total = d.length / 4;
+
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+
+        // Lanyard blue: strong saturation & clear blue dominance over R and G
+        if ((b >= 65 && b > r + 20 && b > g + 15) || (b >= 75 && b / Math.max(1, r) >= 1.25 && b / Math.max(1, g) >= 1.15)) {
+          blueCount++;
+        }
+        // White/Light card body: high brightness and neutral balance
+        if (r > 140 && g > 140 && b > 140 && Math.abs(r - g) < 25 && Math.abs(g - b) < 25) {
+          whiteCount++;
+        }
+        // DSATM Yellow/Gold header
+        if (r >= 110 && g >= 90 && b < 100 && (r + g) > (b * 1.9) && Math.abs(r - g) < 55) {
+          yellowCount++;
+        }
       }
 
-      // Region 3: Face / hand-held ID
-      const faceW = box.width  * 1.4;
-      const faceH = box.height * 1.2;
-      const faceX = box.x - box.width * 0.2;
-      const faceY = box.y - box.height * 0.15;
-      const fs = scanRegion(faceX, faceY, faceW, faceH);
-      if (checkRatios(fs)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: faceX, y: faceY, width: faceW, height: faceH } };
-      }
+      const blueRatio   = (blueCount   / total) * 100;
+      const whiteRatio  = (whiteCount  / total) * 100;
+      const yellowRatio = (yellowCount / total) * 100;
 
-      // Region 4: Wide scan (full person area)
-      const wideW = box.width  * 2.2;
-      const wideH = box.height * 1.2;
-      const wideX = box.x - box.width * 0.6;
-      const wideY = box.y - box.height * 0.1;
-      const ws = scanRegion(wideX, wideY, wideW, wideH);
-      if (checkRatios(ws)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: wideX, y: wideY, width: wideW, height: wideH } };
-      }
+      // Real ID requires the presence of a physical white badge AND blue lanyard/yellow banner
+      const hasId = (whiteRatio >= 7.0 && blueRatio >= 3.5) ||
+                    (whiteRatio >= 10.0 && yellowRatio >= 1.8);
 
-      return { hasId: false, isDsatm: false, chestBox: null };
+      const isDsatm = hasId && (yellowRatio >= 1.2 || blueRatio >= 5.0);
+
+      return {
+        hasId,
+        isDsatm,
+        chestBox: hasId ? { x: chestX, y: chestY, width: chestW, height: chestH } : null
+      };
     } catch {
       return { hasId: false, isDsatm: false, chestBox: null };
     }
   }
-
 
   startDetectionLoop() {
     const drawCanvas = document.createElement('canvas');
@@ -3428,7 +3242,7 @@ class VideoCam3Detector {
     }
   }
 
-  isIdCardWorn(landmarks, box, displayW, displayH) {
+   isIdCardWorn(landmarks, box, displayW, displayH) {
     try {
       const pc  = this.processCanvas;
       const ctx = this.processCtx;
@@ -3439,79 +3253,53 @@ class VideoCam3Detector {
       const chinY = jaw ? jaw[8].y : (box.y + box.height);
       const chinX = jaw ? jaw[8].x : (box.x + box.width / 2);
 
-      const scanRegion = (dispX, dispY, dispW, dispH) => {
-        const px = Math.max(0, Math.min(pc.width  - 2, Math.round(dispX * sx)));
-        const py = Math.max(0, Math.min(pc.height - 2, Math.round(dispY * sy)));
-        const pw = Math.max(2,  Math.min(pc.width  - px, Math.round(dispW * sx)));
-        const ph = Math.max(2,  Math.min(pc.height - py, Math.round(dispH * sy)));
-        const d  = ctx.getImageData(px, py, pw, ph).data;
-        if (d.length < 16) return null;
-        let blueCount = 0, navyCount = 0, yellowCount = 0, whiteCount = 0;
-        const total = d.length / 4;
-        for (let i = 0; i < d.length; i += 4) {
-          const r = d[i], g = d[i+1], b = d[i+2];
-          if ((b > 55 && b > r + 20 && b > g + 15) || (b > 70 && b > r * 1.3 && b > g * 1.1)) blueCount++;
-          if (b > 30 && b > r * 1.5 && b > g * 1.3 && (r+g+b) > 40 && (r+g+b) < 320) navyCount++;
-          if (r > 130 && g > 110 && b < 110 && (r+g) > (b*2.2) && Math.abs(r-g) < 55) yellowCount++;
-          if (r > 130 && g > 130 && b > 130 && Math.abs(r-g) < 22 && Math.abs(g-b) < 22) whiteCount++;
-        }
-        return {
-          blueRatio:   (blueCount   / total) * 100,
-          navyRatio:   (navyCount   / total) * 100,
-          yellowRatio: (yellowCount / total) * 100,
-          whiteRatio:  (whiteCount  / total) * 100
-        };
-      };
-
-      const checkRatios = (s) => s && (
-        (s.blueRatio  >= 0.8) ||
-        (s.navyRatio  >= 0.3) ||
-        (s.yellowRatio >= 0.4 && s.whiteRatio >= 3.0) ||
-        (s.blueRatio  >= 0.4 && s.whiteRatio >= 3.0) ||
-        (s.blueRatio  >= 0.3 && s.navyRatio  >= 0.2)
-      );
-
-      // Region 1: Lanyard strip (narrow vertical band, neck to chest)
-      const lanyardW = box.width * 0.25;
-      const lanyardH = box.height * 1.6;
-      const lanyardX = chinX - lanyardW / 2;
-      const lanyardY = chinY - box.height * 0.05;
-      const ls = scanRegion(lanyardX, lanyardY, lanyardW, lanyardH);
-      if (ls && (ls.navyRatio >= 0.3 || ls.blueRatio >= 0.5)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: lanyardX, y: lanyardY, width: lanyardW, height: lanyardH } };
-      }
-
-      // Region 2: Chest badge (below chin)
-      const chestW = box.width * 1.1;
-      const chestH = box.height * 1.0;
+      const chestW = box.width * 0.9;
+      const chestH = box.height * 1.2;
       const chestX = chinX - chestW / 2;
       const chestY = chinY + box.height * 0.05;
-      const cs = scanRegion(chestX, chestY, chestW, chestH);
-      if (checkRatios(cs)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: chestX, y: chestY, width: chestW, height: chestH } };
+
+      const px = Math.max(0, Math.min(pc.width  - 2, Math.round(chestX * sx)));
+      const py = Math.max(0, Math.min(pc.height - 2, Math.round(chinY * sy)));
+      const pw = Math.max(2,  Math.min(pc.width  - px, Math.round(chestW * sx)));
+      const ph = Math.max(2,  Math.min(pc.height - py, Math.round(chestH * sy)));
+
+      const imgData = ctx.getImageData(px, py, pw, ph);
+      const d = imgData.data;
+      if (d.length < 64) return { hasId: false, isDsatm: false, chestBox: null };
+
+      let blueCount = 0;
+      let whiteCount = 0;
+      let yellowCount = 0;
+      const total = d.length / 4;
+
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+
+        if ((b >= 65 && b > r + 20 && b > g + 15) || (b >= 75 && b / Math.max(1, r) >= 1.25 && b / Math.max(1, g) >= 1.15)) {
+          blueCount++;
+        }
+        if (r > 140 && g > 140 && b > 140 && Math.abs(r - g) < 25 && Math.abs(g - b) < 25) {
+          whiteCount++;
+        }
+        if (r >= 110 && g >= 90 && b < 100 && (r + g) > (b * 1.9) && Math.abs(r - g) < 55) {
+          yellowCount++;
+        }
       }
 
-      // Region 3: Face / hand-held ID
-      const faceW = box.width  * 1.4;
-      const faceH = box.height * 1.2;
-      const faceX = box.x - box.width * 0.2;
-      const faceY = box.y - box.height * 0.15;
-      const fs = scanRegion(faceX, faceY, faceW, faceH);
-      if (checkRatios(fs)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: faceX, y: faceY, width: faceW, height: faceH } };
-      }
+      const blueRatio   = (blueCount   / total) * 100;
+      const whiteRatio  = (whiteCount  / total) * 100;
+      const yellowRatio = (yellowCount / total) * 100;
 
-      // Region 4: Wide scan (full person area)
-      const wideW = box.width  * 2.2;
-      const wideH = box.height * 1.2;
-      const wideX = box.x - box.width * 0.6;
-      const wideY = box.y - box.height * 0.1;
-      const ws = scanRegion(wideX, wideY, wideW, wideH);
-      if (checkRatios(ws)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: wideX, y: wideY, width: wideW, height: wideH } };
-      }
+      const hasId = (whiteRatio >= 7.0 && blueRatio >= 3.5) ||
+                    (whiteRatio >= 10.0 && yellowRatio >= 1.8);
 
-      return { hasId: false, isDsatm: false, chestBox: null };
+      const isDsatm = hasId && (yellowRatio >= 1.2 || blueRatio >= 5.0);
+
+      return {
+        hasId,
+        isDsatm,
+        chestBox: hasId ? { x: chestX, y: chestY, width: chestW, height: chestH } : null
+      };
     } catch {
       return { hasId: false, isDsatm: false, chestBox: null };
     }
