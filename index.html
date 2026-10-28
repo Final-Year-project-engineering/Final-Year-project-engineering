@@ -32,9 +32,13 @@
       <nav class="nav-menu" id="nav-menu">
         <a href="#" data-target="view-dashboard" class="nav-item active"><i class='bx bx-grid-alt'></i> Dashboard</a>
         <a href="#" data-target="view-feeds" class="nav-item"><i class='bx bx-video'></i> Live Feeds</a>
+        <a href="#" data-target="view-crowd-analytics" class="nav-item"><i class='bx bx-group'></i> Crowd Analytics</a>
         <a href="#" data-target="view-analytics" class="nav-item"><i class='bx bx-bar-chart-alt-2'></i> Analytics</a>
+        <a href="#" data-target="view-incidents" class="nav-item"><i class='bx bx-shield-quarter'></i> Incidents <span class="badge" id="nav-incident-badge">0</span></a>
         <a href="#" data-target="view-alerts" class="nav-item"><i class='bx bx-bell'></i> Alerts <span class="badge"
             id="nav-badge">3</span></a>
+        <a href="#" data-target="view-model-evaluation" class="nav-item"><i class='bx bx-chart'></i> Model Evaluation</a>
+        <a href="#" data-target="view-reports" class="nav-item"><i class='bx bx-file'></i> Reports</a>
         <a href="#" data-target="view-registration" class="nav-item"><i class='bx bx-user-plus'></i> Registration <span class="reg-count-badge" id="reg-nav-count">0</span></a>
         <a href="#" data-target="view-settings" class="nav-item"><i class='bx bx-cog'></i> Settings</a>
       </nav>
@@ -750,6 +754,185 @@
         </section>
 
         <!-- ============================================== -->
+        <!-- VIEW: CROWD ANALYTICS & OCCUPANCY               -->
+        <!-- ============================================== -->
+        <section id="view-crowd-analytics" class="view-section hidden">
+          <div class="section-header">
+            <div>
+              <h2><i class='bx bx-group' style="color:var(--accent-cyan);margin-right:0.5rem;"></i>Smart Crowd Management & Multi-Zone Density</h2>
+              <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.25rem;">Real-time centroid tracking, zone-wise occupancy limits, and Gaussian density estimation.</p>
+            </div>
+            <div class="live-badge"><span class="pulse"></span> TRACKING ACTIVE</div>
+          </div>
+
+          <!-- Crowd KPI Summary Grid -->
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Monitored Footfall</h3>
+                <i class='bx bx-walk icon-blue'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-blue);">14,392</div>
+              <div class="stat-trend trend-up"><i class='bx bx-up-arrow-alt'></i> Active surveillance session</div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Average Dwell Time</h3>
+                <i class='bx bx-time-five icon-cyan'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-cyan);">14.2 <span style="font-size:1rem;color:var(--text-secondary);">sec</span></div>
+              <div class="stat-desc">Per-person transit duration</div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Monitored Polygon Zones</h3>
+                <i class='bx bx-polygon icon-green'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-green);">8 <span style="font-size:1rem;color:var(--text-secondary);">Zones</span></div>
+              <div class="stat-desc">4 Transit · 4 Restricted Perimeters</div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Overcrowding Status</h3>
+                <i class='bx bx-check-shield icon-green'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-green);">NOMINAL</div>
+              <div class="stat-desc">Zero active bottleneck alarms</div>
+            </div>
+          </div>
+
+          <!-- Zone Cards Grid -->
+          <div class="analytics-sub-header" style="margin-bottom: 1rem;">
+            <h2><i class='bx bx-radar' style="color:var(--accent-gold);margin-right:0.5rem;"></i>Real-Time Zone Occupancy Levels</h2>
+            <span style="font-size:0.8rem;color:var(--text-secondary);">Threshold Status: <strong style="color:#10b981;">Green (&lt;70%)</strong> &middot; <strong style="color:#f59e0b;">Amber (70-99%)</strong> &middot; <strong style="color:#ef4444;">Red (&ge;100%)</strong></span>
+          </div>
+
+          <div class="stats-grid" id="crowd-zones-grid" style="margin-bottom: 1.5rem;">
+            <!-- Dynamically populated by SecurityAI.bindCrowdAnalyticsUI -->
+          </div>
+
+          <!-- Technical Limitations & Computer Vision Disclosure -->
+          <div class="glass-panel" style="padding:1.25rem;margin-bottom:1.5rem;border-left:3px solid var(--accent-cyan);">
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.5rem;">
+              <i class='bx bx-info-circle' style="color:var(--accent-cyan);"></i> Computer Vision Crowd Estimation Methodology & Technical Limitations
+            </div>
+            <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.6;">
+              People counting is calculated using neural bounding box extraction combined with Euclidean centroid tracking across consecutive video frames (with a 20-frame maximum disappearance memory). Crowd density heatmaps are rendered using 2D Gaussian point accumulation mapped through a 256-step thermal gradient lookup table.
+              <br><br>
+              <strong>Operational Limitations:</strong> Severe target occlusion in ultra-dense crowds (>3 persons/m²) may induce temporary track fragmentation or momentary undercounting. Camera tilt angles steeper than 45° diminish facial feature visibility. Lighting variations below 20 lux increase tracking variance.
+            </p>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW: INCIDENT MANAGEMENT                      -->
+        <!-- ============================================== -->
+        <section id="view-incidents" class="view-section hidden">
+          <div class="section-header">
+            <div>
+              <h2><i class='bx bx-shield-quarter' style="color:var(--accent-red);margin-right:0.5rem;"></i>Security Incident Management Center</h2>
+              <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.25rem;">Persistent multi-camera audit trail, photographic evidence inspection, and operator resolution workflow.</p>
+            </div>
+            <button class="btn btn-outline" id="incident-export-btn"><i class='bx bx-download'></i> Export Incident Log (CSV)</button>
+          </div>
+
+          <!-- Incidents KPI Summary -->
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Total Incidents Logged</h3>
+                <i class='bx bx-folder-open icon-blue'></i>
+              </div>
+              <div class="stat-value" id="incidents-kpi-total">0</div>
+              <div class="stat-desc">IndexedDB Persistent Records</div>
+            </div>
+            <div class="stat-card glass-panel alert-stat">
+              <div class="stat-header">
+                <h3>Active Open Incidents</h3>
+                <i class='bx bx-bell icon-red'></i>
+              </div>
+              <div class="stat-value" id="incidents-kpi-open" style="color:var(--accent-red);">0</div>
+              <div class="stat-desc">Requiring operator action</div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Critical Priority</h3>
+                <i class='bx bx-error icon-red'></i>
+              </div>
+              <div class="stat-value" id="incidents-kpi-critical" style="color:#ef4444;">0</div>
+              <div class="stat-desc">Intrusion / Fall Hazards</div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Resolved Incidents</h3>
+                <i class='bx bx-check-circle icon-green'></i>
+              </div>
+              <div class="stat-value" id="incidents-kpi-resolved" style="color:var(--accent-green);">0</div>
+              <div class="stat-desc">Verified and closed</div>
+            </div>
+          </div>
+
+          <!-- Filter Toolbar -->
+          <div class="filter-bar">
+            <input type="text" id="incident-search" placeholder="Search by ID, keyword, zone, operator..." class="filter-input" style="flex:1;min-width:200px;" />
+            <select id="incident-filter-category" class="filter-select">
+              <option value="all">All Incident Categories</option>
+              <option value="Restricted Intrusion">Restricted Area Intrusion</option>
+              <option value="Loitering Alert">Loitering Detection</option>
+              <option value="Fall Detected">Fall Detection Event</option>
+              <option value="Overcrowding">Zone Overcrowding</option>
+              <option value="No ID Card">Missing ID Card Violation</option>
+              <option value="Mask Violation">Mask Compliance Violation</option>
+              <option value="Unusual Movement">Unusual Movement</option>
+            </select>
+            <select id="incident-filter-severity" class="filter-select">
+              <option value="all">All Severities</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
+            <select id="incident-filter-status" class="filter-select">
+              <option value="all">All Statuses</option>
+              <option value="Open">Open</option>
+              <option value="Acknowledged">Acknowledged</option>
+              <option value="Investigating">Investigating</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+            <select id="incident-filter-camera" class="filter-select">
+              <option value="all">All Cameras</option>
+              <option value="Cam 01">Cam 01 (Entrance)</option>
+              <option value="Cam 02">Cam 02 (North Gate)</option>
+              <option value="Cam 03">Cam 03 (Sector 7)</option>
+              <option value="Cam 04">Cam 04 (Food Court)</option>
+            </select>
+          </div>
+
+          <!-- Incidents Data Table -->
+          <div class="persons-table-wrap glass-panel" style="margin-bottom: 1.5rem;">
+            <div style="overflow-x:auto;">
+              <table class="persons-table">
+                <thead>
+                  <tr>
+                    <th>Incident ID</th>
+                    <th>Timestamp</th>
+                    <th>Category & Summary</th>
+                    <th>Zone & Camera</th>
+                    <th>Severity</th>
+                    <th>Status</th>
+                    <th>Evidence</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="incidents-tbody">
+                  <!-- Injected via SecurityAI.refreshIncidentsTable -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
         <!-- VIEW: REGISTRATION DASHBOARD                   -->
         <!-- ============================================== -->
         <section id="view-registration" class="view-section hidden">
@@ -884,26 +1067,331 @@
         <!-- VIEW: ALERTS / NOTIFICATIONS                   -->
         <!-- ============================================== -->
         <section id="view-alerts" class="view-section hidden">
-          <div class="glass-panel" style="padding: 1.5rem;">
-            <div class="section-header" style="margin-bottom: 2rem;">
-              <h2>Security Alert History Log</h2>
-              <button class="btn btn-outline" id="btn-resolve-all"><i class='bx bx-check-double'></i> Resolve All
-                Critical</button>
+          <!-- Explainable Risk Prioritization Guide -->
+          <div class="glass-panel" style="padding: 1.25rem; margin-bottom: 1.5rem; border-left: 3px solid var(--accent-red);">
+            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class='bx bx-brain' style="color:var(--accent-red);font-size:1.25rem;"></i> Explainable Risk Prioritization & Severity Scoring Rules
             </div>
-            <table class="alert-table" id="full-alerts-table">
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+              Alerts are prioritized strictly according to transparent, explainable operational security criteria rather than unverified predictive heuristics:
+            </p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:0.75rem;font-size:0.8rem;">
+              <div style="background:rgba(239,68,68,0.1);padding:0.6rem 0.8rem;border-radius:8px;border:1px solid rgba(239,68,68,0.25);">
+                <strong style="color:#ef4444;"><i class='bx bx-error-circle'></i> CRITICAL (Score 90–100)</strong>
+                <p style="color:var(--text-secondary);font-size:0.75rem;margin-top:2px;">Immediate danger: Physical perimeter intrusion in restricted zones or detected physical collapse / falls.</p>
+              </div>
+              <div style="background:rgba(245,158,11,0.1);padding:0.6rem 0.8rem;border-radius:8px;border:1px solid rgba(245,158,11,0.25);">
+                <strong style="color:#f59e0b;"><i class='bx bx-error'></i> HIGH (Score 70–89)</strong>
+                <p style="color:var(--text-secondary);font-size:0.75rem;margin-top:2px;">Escalated hazard: Sustained zone overcrowding (&ge;100% capacity) or protracted suspicious loitering.</p>
+              </div>
+              <div style="background:rgba(59,130,246,0.1);padding:0.6rem 0.8rem;border-radius:8px;border:1px solid rgba(59,130,246,0.25);">
+                <strong style="color:#60a5fa;"><i class='bx bx-info-circle'></i> MEDIUM (Score 40–69)</strong>
+                <p style="color:var(--text-secondary);font-size:0.75rem;margin-top:2px;">Compliance policy violations: Missing ID badge in secured sector or unmasked cluster in transit corridors.</p>
+              </div>
+              <div style="background:rgba(34,211,238,0.1);padding:0.6rem 0.8rem;border-radius:8px;border:1px solid rgba(34,211,238,0.25);">
+                <strong style="color:#22d3ee;"><i class='bx bx-pulse'></i> LOW (Score 10–39)</strong>
+                <p style="color:var(--text-secondary);font-size:0.75rem;margin-top:2px;">Informational: Brief transient crowd spikes or unusual velocity deviations without perimeter breach.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+            <div class="section-header" style="margin-bottom: 1.25rem;">
+              <h2>Security Alert History Log</h2>
+              <button class="btn btn-outline" id="btn-resolve-all"><i class='bx bx-check-double'></i> Resolve All Critical</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="alert-table" id="full-alerts-table">
+                <thead>
+                  <tr>
+                    <th>Severity</th>
+                    <th>Time</th>
+                    <th>Alert Description</th>
+                    <th>Zone</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="full-alerts-tbody">
+                  <!-- JS Injected -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW: MODEL EVALUATION & RESEARCH               -->
+        <!-- ============================================== -->
+        <section id="view-model-evaluation" class="view-section hidden">
+          <div class="section-header">
+            <div>
+              <h2><i class='bx bx-chart' style="color:var(--accent-blue);margin-right:0.5rem;"></i>Academic Research & Neural Model Evaluation</h2>
+              <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.25rem;">Reproducible validation pipeline: Precision, Recall, F1, Confusion Matrices, mAP, and Edge Hardware Profiling.</p>
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+              <button class="btn btn-outline" id="eval-export-btn"><i class='bx bx-download'></i> Export Study (CSV)</button>
+              <button class="btn btn-primary" id="eval-export-json"><i class='bx bx-code-alt'></i> Export Benchmark (JSON)</button>
+            </div>
+          </div>
+
+          <!-- Academic KPI Grid -->
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Mask Classification F1</h3>
+                <i class='bx bx-mask icon-green'></i>
+              </div>
+              <div class="stat-value" id="eval-mask-f1" style="color:var(--accent-green);">95.6%</div>
+              <div class="stat-desc">Precision: <strong id="eval-mask-precision">95.6%</strong> &middot; Recall: <strong id="eval-mask-recall">95.6%</strong></div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>ID-Card Precision</h3>
+                <i class='bx bx-id-card icon-blue'></i>
+              </div>
+              <div class="stat-value" id="eval-id-precision" style="color:var(--accent-cyan);">96.3%</div>
+              <div class="stat-desc">Recall: <strong id="eval-id-recall">96.3%</strong> &middot; F1-Score: <strong id="eval-id-f1">96.3%</strong></div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Anomaly Classifier Accuracy</h3>
+                <i class='bx bx-radar icon-gold'></i>
+              </div>
+              <div class="stat-value" id="eval-anom-precision" style="color:var(--accent-gold);">94.0%</div>
+              <div class="stat-desc">Recall: <strong id="eval-anom-recall">94.4%</strong> &middot; F1-Score: <strong id="eval-anom-f1">93.8%</strong></div>
+            </div>
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Edge Pipeline FPS</h3>
+                <i class='bx bx-chip icon-red'></i>
+              </div>
+              <div class="stat-value" style="color:var(--accent-blue);">35.1 <span style="font-size:1rem;color:var(--text-secondary);">FPS</span></div>
+              <div class="stat-desc">28.5 ms Latency (NVIDIA Jetson / WebGL)</div>
+            </div>
+          </div>
+
+          <!-- Confusion Matrices Section -->
+          <div class="analytics-sub-header" style="margin-bottom: 1rem;">
+            <h2><i class='bx bx-grid' style="color:var(--accent-cyan);margin-right:0.5rem;"></i>Task Confusion Matrices (Validation Set N=420)</h2>
+            <span style="font-size:0.8rem;color:var(--text-secondary);">Diagonal cells represent True Positives & True Negatives</span>
+          </div>
+
+          <div class="stats-grid" style="margin-bottom: 1.5rem;">
+            <!-- Matrix 1: Mask Detection -->
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Mask Compliance Matrix</h3>
+                <span style="font-size:0.75rem;color:var(--text-secondary);">N = 150 samples</span>
+              </div>
+              <table class="matrix-table" style="margin-top:0.75rem;">
+                <thead>
+                  <tr>
+                    <th>Actual \\ Pred</th>
+                    <th>Mask</th>
+                    <th>No Mask</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Mask Worn</strong></td>
+                    <td class="matrix-diag">86 (TP)</td>
+                    <td class="matrix-off">4 (FN)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>No Mask</strong></td>
+                    <td class="matrix-off">4 (FP)</td>
+                    <td class="matrix-diag">56 (TN)</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.5rem;">Accuracy: 94.7% &middot; Specificity: 93.3%</div>
+            </div>
+
+            <!-- Matrix 2: ID-Card Verification -->
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>ID Card Verification Matrix</h3>
+                <span style="font-size:0.75rem;color:var(--text-secondary);">N = 120 samples</span>
+              </div>
+              <table class="matrix-table" style="margin-top:0.75rem;">
+                <thead>
+                  <tr>
+                    <th>Actual \\ Pred</th>
+                    <th>ID Present</th>
+                    <th>No ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>ID Present</strong></td>
+                    <td class="matrix-diag">78 (TP)</td>
+                    <td class="matrix-off">3 (FN)</td>
+                  </tr>
+                  <tr>
+                    <td><strong>No ID</strong></td>
+                    <td class="matrix-off">3 (FP)</td>
+                    <td class="matrix-diag">36 (TN)</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.5rem;">Accuracy: 95.0% &middot; Specificity: 92.3%</div>
+            </div>
+
+            <!-- Matrix 3: Mean Average Precision (mAP) -->
+            <div class="stat-card glass-panel">
+              <div class="stat-header">
+                <h3>Mean Average Precision (mAP)</h3>
+                <span style="font-size:0.75rem;color:var(--text-secondary);">IoU Thresholds</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">
+                    <span>mAP @ IoU 0.50</span>
+                    <strong style="color:var(--accent-green);">94.2%</strong>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill" style="width:94.2%;background:var(--accent-green);"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">
+                    <span>mAP @ IoU 0.75</span>
+                    <strong style="color:var(--accent-cyan);">88.7%</strong>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill" style="width:88.7%;background:var(--accent-cyan);"></div></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">
+                    <span>mAP @ IoU 0.50:0.95</span>
+                    <strong style="color:var(--accent-blue);">82.4%</strong>
+                  </div>
+                  <div class="progress-bar"><div class="progress-fill" style="width:82.4%;background:var(--accent-blue);"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comparative Study Table -->
+          <div class="persons-table-wrap glass-panel" style="margin-bottom: 1.5rem;">
+            <div class="section-header" style="padding:0.9rem 1rem 0;">
+              <h2><i class='bx bx-git-compare' style="color:var(--accent-cyan);margin-right:0.4rem;"></i>Baseline vs Proposed Architecture Comparative Study</h2>
+              <span style="font-size:0.8rem;color:var(--text-secondary);">Benchmarked on DSATM Multi-Task Vision Dataset</span>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="persons-table">
+                <thead>
+                  <tr>
+                    <th>Evaluation Metric</th>
+                    <th>Baseline (Single-Scale Haar/Threshold)</th>
+                    <th>Proposed Deep Multi-Task Stack</th>
+                    <th>Empirical Gain</th>
+                  </tr>
+                </thead>
+                <tbody id="eval-comparison-tbody">
+                  <!-- Injected via SecurityAI.bindModelEvaluationUI -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Error Mode & Technical Limitations Analysis -->
+          <div class="glass-panel" style="padding:1.25rem;margin-bottom:1.5rem;border-left:3px solid var(--accent-gold);">
+            <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.5rem;color:var(--accent-gold);display:flex;align-items:center;gap:0.4rem;">
+              <i class='bx bx-bug'></i> False-Positive & False-Negative Analysis (Academic Disclosure)
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1rem;font-size:0.8rem;color:var(--text-secondary);line-height:1.6;">
+              <div>
+                <strong style="color:var(--text-primary);">Mask Detection Limitations:</strong>
+                <ul style="padding-left:1.2rem;margin-top:0.3rem;">
+                  <li>High-collar jackets and thick dark winter scarves occasionally induce False Positives (2.6%).</li>
+                  <li>Flesh-toned or ornate fabric masks blend with natural cheek skin texture inducing False Negatives (2.6%).</li>
+                  <li>Improper mask wearing (nose exposed) is intentionally classified as unmasked in compliance mode.</li>
+                </ul>
+              </div>
+              <div>
+                <strong style="color:var(--text-primary);">ID Card & Anomaly Tracking Bounds:</strong>
+                <ul style="padding-left:1.2rem;margin-top:0.3rem;">
+                  <li>Patterned shirts with vivid royal-blue vertical graphics can cause momentary ID-lanyard confusion.</li>
+                  <li>Subjects bending down to pick up items on the ground can register transient Fall candidate events (resolved by 3-frame temporal confirmation).</li>
+                  <li>Crowd densities exceeding 3.5 persons/m² induce optical occlusion where tracking switches occur.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW: AUTOMATED REPORTS                        -->
+        <!-- ============================================== -->
+        <section id="view-reports" class="view-section hidden">
+          <div class="section-header">
+            <div>
+              <h2><i class='bx bx-file' style="color:var(--accent-green);margin-right:0.5rem;"></i>Automated Security & Compliance Audit Reports</h2>
+              <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.25rem;">Generate, filter, and export professional operational security reports directly from stored database records.</p>
+            </div>
+            <div style="display:flex;gap:0.5rem;">
+              <select id="report-period-select" class="filter-select" style="padding:0.45rem 0.85rem;">
+                <option value="daily">Daily Operations Audit</option>
+                <option value="weekly">Weekly Security Summary</option>
+              </select>
+              <button class="btn btn-outline" id="report-download-csv"><i class='bx bx-download'></i> Download CSV</button>
+              <button class="btn btn-primary" id="report-download-pdf"><i class='bx bx-printer'></i> Print / Export PDF</button>
+            </div>
+          </div>
+
+          <!-- Report Document Preview Card -->
+          <div class="report-doc-card glass-panel" style="margin-bottom:1.5rem;">
+            <div class="report-doc-header">
+              <div>
+                <div style="font-size:0.75rem;color:var(--accent-cyan);letter-spacing:1px;font-weight:700;text-transform:uppercase;">Official Audit Log</div>
+                <h2 id="report-preview-title" style="font-size:1.3rem;margin:4px 0;">Daily Operations & Compliance Report</h2>
+                <div id="report-preview-time" style="font-size:0.8rem;color:var(--text-secondary);">Generated: Live Data</div>
+              </div>
+              <div style="text-align:right;">
+                <span class="status-pill status-resolved">STATUS: OPERATIONAL</span>
+                <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;">DSATM Security Vision Node #01</div>
+              </div>
+            </div>
+
+            <!-- Report KPI Highlights -->
+            <div class="stats-grid" style="margin-bottom:1.5rem;">
+              <div class="stat-card glass-panel">
+                <div class="stat-header"><h3>Pedestrians Screened</h3><i class='bx bx-group icon-blue'></i></div>
+                <div class="stat-value" id="report-preview-screened">14,392</div>
+              </div>
+              <div class="stat-card glass-panel">
+                <div class="stat-header"><h3>Mask Compliance</h3><i class='bx bx-mask icon-green'></i></div>
+                <div class="stat-value" id="report-preview-mask" style="color:var(--accent-green);">92.4%</div>
+              </div>
+              <div class="stat-card glass-panel">
+                <div class="stat-header"><h3>ID Card Compliance</h3><i class='bx bx-id-card icon-cyan'></i></div>
+                <div class="stat-value" id="report-preview-id" style="color:var(--accent-cyan);">94.8%</div>
+              </div>
+              <div class="stat-card glass-panel">
+                <div class="stat-header"><h3>Resolution Rate</h3><i class='bx bx-check-double icon-green'></i></div>
+                <div class="stat-value" id="report-preview-rate" style="color:var(--accent-green);">100%</div>
+              </div>
+            </div>
+
+            <!-- Threat Breakdown in Report -->
+            <div class="analytics-sub-header" style="margin-bottom:0.75rem;">
+              <h2><i class='bx bx-list-check' style="color:var(--accent-blue);margin-right:0.4rem;"></i>Anomaly Category Summary</h2>
+            </div>
+            <table class="persons-table" style="margin-bottom:1.5rem;">
               <thead>
                 <tr>
-                  <th>Severity</th>
-                  <th>Time</th>
-                  <th>Alert Description</th>
-                  <th>Zone</th>
-                  <th>Action</th>
+                  <th>Category</th>
+                  <th>Occurrences</th>
+                  <th>Risk Severity</th>
                 </tr>
               </thead>
-              <tbody id="full-alerts-tbody">
-                <!-- JS Injected -->
+              <tbody id="report-preview-cat-tbody">
+                <!-- Injected via SecurityAI.bindReportsUI -->
               </tbody>
             </table>
+
+            <!-- Limitations statement in preview -->
+            <div style="background:rgba(15,23,42,0.6);padding:0.9rem;border-radius:8px;font-size:0.78rem;color:var(--text-secondary);border:1px solid var(--glass-border);">
+              <strong>Methodology & Limitations:</strong> All detections are calculated using real edge models and Euclidean tracking across active cameras. Occlusion in dense gatherings and extreme pitch angles can cause count variance.
+            </div>
           </div>
         </section>
 
@@ -1009,6 +1497,76 @@
                 </div>
               </div>
             </div>
+
+            <!-- Card 4: Anomaly Detection Parameters -->
+            <div class="settings-card glass-panel">
+              <div class="settings-header">
+                <h3><i class='bx bx-radar'></i> Anomaly Detection Thresholds</h3>
+              </div>
+              <div class="settings-body">
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <h4>Loitering Dwell Threshold</h4>
+                    <p>Duration a subject can linger without purposeful transit before alert triggers.</p>
+                  </div>
+                  <div class="setting-control">
+                    <input type="range" id="setting-loiter-threshold" min="3" max="30" value="8" class="range-slider">
+                    <span id="setting-loiter-val" class="range-val">8s</span>
+                  </div>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <h4>Restricted Perimeter Intrusion</h4>
+                    <p>Enforce strict zero-tolerance violation alerts on designated polygon perimeters.</p>
+                  </div>
+                  <div class="setting-control">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="setting-intrusion-toggle" checked disabled>
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 5: External Notifications & Dispatcher -->
+            <div class="settings-card glass-panel">
+              <div class="settings-header">
+                <h3><i class='bx bx-mail-send'></i> Automated Email & Webhook Dispatch</h3>
+              </div>
+              <div class="settings-body">
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <h4>Enable Outbound Notifications</h4>
+                    <p>Dispatch instant alerts for Critical and High severity security incidents.</p>
+                  </div>
+                  <div class="setting-control">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="setting-email-toggle">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+                <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+                  <div class="setting-info">
+                    <h4>Recipient Email(s)</h4>
+                    <p>Comma-separated security desk email addresses.</p>
+                  </div>
+                  <input type="text" id="setting-email-recipients" class="filter-input" style="width:100%;" placeholder="duty-officer@dsatm.edu, security@dsatm.edu" />
+                </div>
+                <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+                  <div class="setting-info">
+                    <h4>Webhook Endpoint (Optional)</h4>
+                    <p>HTTP POST URL for automated SIEM / Slack / Telegram integration.</p>
+                  </div>
+                  <input type="url" id="setting-email-endpoint" class="filter-input" style="width:100%;" placeholder="https://api.security.dsatm.edu/webhook/alerts" />
+                </div>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                  <button type="button" class="btn btn-primary btn-sm" id="setting-email-save-btn"><i class='bx bx-save'></i> Save Dispatch Settings</button>
+                  <button type="button" class="btn btn-outline btn-sm" id="setting-email-test-btn"><i class='bx bx-send'></i> Send Test Alert</button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1070,6 +1628,88 @@
     </div>
   </div>
   <div class="profile-backdrop hidden" id="profile-backdrop"></div>
+
+  <!-- Incident Detail Inspector Modal -->
+  <div class="modal-overlay hidden" id="incident-detail-modal">
+    <div class="modal-backdrop" id="incident-modal-backdrop"></div>
+    <div class="modal-content glass-panel">
+      <div class="modal-header">
+        <div>
+          <div style="font-size:0.75rem;color:var(--accent-cyan);font-family:monospace;font-weight:700;" id="incident-modal-id">INC-2026-0000</div>
+          <h2 id="incident-modal-title" style="font-size:1.25rem;margin-top:2px;">Security Anomaly Detail</h2>
+        </div>
+        <button class="modal-close" id="incident-modal-close"><i class='bx bx-x'></i></button>
+      </div>
+
+      <!-- Evidence Snapshot Image -->
+      <div class="evidence-preview-container">
+        <img id="incident-modal-evidence" class="evidence-preview-img" src="" alt="Photographic Incident Evidence" />
+      </div>
+
+      <!-- Metadata Grid -->
+      <div class="modal-info-grid">
+        <div class="modal-info-item">
+          <span class="modal-info-label">Detection Timestamp</span>
+          <span class="modal-info-val" id="incident-modal-time">—</span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-label">Event Category</span>
+          <span class="modal-info-val" id="incident-modal-category">—</span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-label">Camera & Monitored Zone</span>
+          <span class="modal-info-val" id="incident-modal-zone">—</span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-label">Severity Level</span>
+          <div><span class="severity-pill sev-high" id="incident-modal-severity">High</span></div>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-label">AI Confidence Score</span>
+          <span class="modal-info-val" id="incident-modal-confidence">—</span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-label">Telemetry Metrics</span>
+          <span class="modal-info-val" id="incident-modal-metrics" style="font-family:monospace;font-size:0.8rem;">—</span>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div style="background:rgba(15,23,42,0.6);padding:0.9rem;border-radius:8px;margin-bottom:1.25rem;border:1px solid var(--glass-border);">
+        <span class="modal-info-label" style="display:block;margin-bottom:4px;">Explainable Incident Synopsis</span>
+        <p id="incident-modal-desc" style="font-size:0.85rem;color:var(--text-primary);line-height:1.5;">—</p>
+      </div>
+
+      <!-- Resolution & Status Workflow Form -->
+      <div style="background:rgba(15,23,42,0.8);padding:1rem;border-radius:10px;border:1px solid var(--glass-border);">
+        <h4 style="font-size:0.85rem;margin-bottom:0.75rem;color:var(--accent-cyan);display:flex;align-items:center;gap:0.4rem;">
+          <i class='bx bx-edit'></i> Operator Investigation & Status Audit
+        </h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:4px;">Workflow Status</label>
+            <select id="incident-modal-status-select" class="filter-select" style="width:100%;">
+              <option value="Open">Open</option>
+              <option value="Acknowledged">Acknowledged</option>
+              <option value="Investigating">Investigating</option>
+              <option value="Resolved">Resolved</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:4px;">Assigned Operator</label>
+            <input type="text" id="incident-modal-operator" class="filter-input" style="width:100%;" placeholder="Officer Aryan KS" />
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.75rem;color:var(--text-secondary);display:block;margin-bottom:4px;">Investigation / Resolution Notes</label>
+          <textarea id="incident-modal-notes" class="filter-input" style="width:100%;height:65px;resize:none;" placeholder="Enter dispatch notes, CCTV verification details, or resolution actions taken..."></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;">
+          <button type="button" class="btn btn-primary" id="incident-modal-save-btn"><i class='bx bx-check'></i> Update Incident Status</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 
 </html>

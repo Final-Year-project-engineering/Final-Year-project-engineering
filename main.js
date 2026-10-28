@@ -2,6 +2,8 @@
 // AI CROWD MANAGEMENT & SECURITY SYSTEM
 // FULL UPDATED COMBINED JAVASCRIPT CODE
 // ============================================================
+import { securityAI } from './src/modules/securityAI.js';
+window.SecurityAI = securityAI;
 
 // ============================================================
 // REGISTRATION DATABASE  (persisted via localStorage)
@@ -314,6 +316,21 @@ function initRouting() {
             window._dashSim.camIdDoughnutChart?.resize();
           }
         }, 100);
+      }
+      else if (targetId === 'view-crowd-analytics') {
+        titleEl.innerText = 'Smart Crowd Management & Density Analytics';
+        if (window.SecurityAI) window.SecurityAI.refreshCrowdAnalyticsView();
+      }
+      else if (targetId === 'view-incidents') {
+        titleEl.innerText = 'Security Incident Management & Dispatch';
+        if (window.SecurityAI) window.SecurityAI.refreshIncidentsTable();
+      }
+      else if (targetId === 'view-model-evaluation') {
+        titleEl.innerText = 'Academic Research & Neural Model Evaluation';
+        if (window.SecurityAI) window.SecurityAI.renderEvaluationCards();
+      }
+      else if (targetId === 'view-reports') {
+        titleEl.innerText = 'Automated Security & Compliance Audit Reports';
       }
       else if (targetId === 'view-alerts') {
         titleEl.innerText = 'Security Notification Center';
@@ -2595,6 +2612,11 @@ class WebcamMaskDetector {
 
         updatePersonsTable(personRows);
 
+        // Security AI Suite: Centroid Tracking, Zones, Anomaly & Incident Engine
+        if (window.SecurityAI) {
+          window.SecurityAI.processFrame('cam1', 'Cam 01: Live Entrance (Webcam)', resized, drawCanvas, this.video);
+        }
+
         // Synchronize live Cam 01 ID compliance into Analytics
         if (window._dashSim && window._dashSim.camIdStats) {
           const totalInFrame = resized.length;
@@ -3065,6 +3087,11 @@ class VideoMaskDetector {
         updateViolatorsPanel(newViolators, noMaskCount);
         updatePersonsTable(personRows);
 
+        // Security AI Suite: Centroid Tracking, Zones, Anomaly & Incident Engine
+        if (window.SecurityAI) {
+          window.SecurityAI.processFrame('cam2', 'Cam 02: North Gate Main', resized, drawCanvas, this.video);
+        }
+
         // Alert on violation
         const now = Date.now();
         if (noMaskCount > 0 && now - this.lastAlertTime > 8000) {
@@ -3447,6 +3474,11 @@ class VideoCam3Detector {
             violations: noIdCount,
             rate: total > 0 ? Math.round((compliant / total) * 100) : 0
           };
+        }
+
+        // Security AI Suite: Centroid Tracking, Zones, Anomaly & Incident Engine
+        if (window.SecurityAI) {
+          window.SecurityAI.processFrame('cam3', 'Cam 03: Sector 7 - West Gate', resized, drawCanvas, this.video);
         }
 
         // Alert on violation
@@ -3855,6 +3887,11 @@ class VideoCam4Detector {
             violations: noIdCount,
             rate: total > 0 ? Math.round((compliant / total) * 100) : 0
           };
+        }
+
+        // Security AI Suite: Centroid Tracking, Zones, Anomaly & Incident Engine
+        if (window.SecurityAI) {
+          window.SecurityAI.processFrame('cam4', 'Cam 04: Sector 2 - Food Court', resized, drawCanvas, this.video);
         }
 
         // Alert on violation
