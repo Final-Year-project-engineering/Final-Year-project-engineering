@@ -2,8 +2,6 @@
 // AI CROWD MANAGEMENT & SECURITY SYSTEM
 // FULL UPDATED COMBINED JAVASCRIPT CODE
 // ============================================================
-import { securityAI } from './src/modules/securityAI.js';
-window.SecurityAI = securityAI;
 
 // ============================================================
 // REGISTRATION DATABASE  (persisted via localStorage)
@@ -316,21 +314,6 @@ function initRouting() {
             window._dashSim.camIdDoughnutChart?.resize();
           }
         }, 100);
-      }
-      else if (targetId === 'view-crowd-analytics') {
-        titleEl.innerText = 'Smart Crowd Management & Density Analytics';
-        if (window.SecurityAI) window.SecurityAI.refreshCrowdAnalyticsView();
-      }
-      else if (targetId === 'view-incidents') {
-        titleEl.innerText = 'Security Incident Management & Dispatch';
-        if (window.SecurityAI) window.SecurityAI.refreshIncidentsTable();
-      }
-      else if (targetId === 'view-model-evaluation') {
-        titleEl.innerText = 'Academic Research & Neural Model Evaluation';
-        if (window.SecurityAI) window.SecurityAI.renderEvaluationCards();
-      }
-      else if (targetId === 'view-reports') {
-        titleEl.innerText = 'Automated Security & Compliance Audit Reports';
       }
       else if (targetId === 'view-alerts') {
         titleEl.innerText = 'Security Notification Center';
@@ -1408,7 +1391,7 @@ function playHappyMusic() {
   lastHappyMusicTime = now;
 
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = new (window.AudioContext || /** @type {any} */ (window).webkitAudioContext)();
   }
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
@@ -1448,7 +1431,7 @@ function playSadMusic() {
   lastSadMusicTime = now;
 
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = new (window.AudioContext || /** @type {any} */ (window).webkitAudioContext)();
   }
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
@@ -1488,7 +1471,7 @@ function playAngryMusic() {
   lastAngryMusicTime = now;
 
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx = new (window.AudioContext || /** @type {any} */ (window).webkitAudioContext)();
   }
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
@@ -2075,75 +2058,130 @@ class WebcamMaskDetector {
     const isMaskWorn = (landmarks, scaleX, scaleY) => {
       try {
         if (!landmarks) return false;
-        const nose       = landmarks.getNose();
-        const jaw        = landmarks.getJawOutline();
-        const mouth      = landmarks.getMouth();
-        if (!nose || !mouth || !jaw) return false;
 
-        const noseTip    = nose[6];
-        const chin       = jaw[8];
-        const leftCheek  = jaw[3];
-        const rightCheek = jaw[13];
-        const mouthMid   = {
-          x: (mouth[0].x + mouth[6].x) / 2,
-          y: (mouth[0].y + mouth[6].y) / 2
-        };
+        const nose = landmarks.getNose();
+        const mouth = landmarks.getMouth();
+        const jaw = landmarks.getJawOutline();
+        const leftEye = landmarks.getLeftEye();
+        const rightEye = landmarks.getRightEye();
+
+        if (!nose || !mouth || !leftEye || !rightEye || !jaw) return false;
 
         const imgW = extractCanvas.width;
         const imgH = extractCanvas.height;
 
-        const samplePts = [noseTip, chin, leftCheek, rightCheek, mouthMid];
-        const grays = [], rVals = [], gVals = [], bVals = [];
-
-        for (const pt of samplePts) {
-          const px = Math.max(0, Math.min(imgW - 13, Math.round(pt.x * scaleX) - 6));
-          const py = Math.max(0, Math.min(imgH - 13, Math.round(pt.y * scaleY) - 6));
-          const d  = extractCtx.getImageData(px, py, 12, 12).data;
-          for (let i = 0; i < d.length; i += 4) {
-            grays.push(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
-            rVals.push(d[i] / 255);
-            gVals.push(d[i + 1] / 255);
-            bVals.push(d[i + 2] / 255);
+        // Sample helper to safely get average RGB of a small patch in extractCanvas
+        const samplePatch = (pt, radius = 2) => {
+          if (!pt) return [128, 128, 128];
+          const px = Math.round(pt.x * scaleX);
+          const py = Math.round(pt.y * scaleY);
+          const x0 = Math.max(0, Math.min(imgW - 1, px - radius));
+          const y0 = Math.max(0, Math.min(imgH - 1, py - radius));
+          const w = Math.min(imgW - x0, radius * 2 + 1);
+          const h = Math.min(imgH - y0, radius * 2 + 1);
+          if (w <= 0 || h <= 0) return [128, 128, 128];
+          const imgData = extractCtx.getImageData(x0, y0, w, h).data;
+          let rSum = 0, gSum = 0, bSum = 0, count = 0;
+          for (let i = 0; i < imgData.length; i += 4) {
+            rSum += imgData[i];
+            gSum += imgData[i + 1];
+            bSum += imgData[i + 2];
+            count++;
           }
+          if (count === 0) return [128, 128, 128];
+          return [rSum / count, gSum / count, bSum / count];
+        };
+
+        // 1. Reference Skin Tone from upper face:
+        // Glabella (between the eyes) and under-eye cheeks (guaranteed hair-free bare skin)
+        const glabella = {
+          x: (leftEye[3].x + rightEye[0].x) / 2,
+          y: (leftEye[3].y + rightEye[0].y) / 2
+        };
+        const leftCheekSkin = {
+          x: leftEye[0].x,
+          y: leftEye[0].y + (nose[3].y - leftEye[0].y) * 0.45
+        };
+        const rightCheekSkin = {
+          x: rightEye[3].x,
+          y: rightEye[3].y + (nose[3].y - rightEye[3].y) * 0.45
+        };
+
+        const skinRef1 = samplePatch(glabella, 3);
+        const skinRef2 = samplePatch(leftCheekSkin, 3);
+        const skinRef3 = samplePatch(rightCheekSkin, 3);
+
+        const rSkin = (skinRef1[0] + skinRef2[0] + skinRef3[0]) / 3;
+        const gSkin = (skinRef1[1] + skinRef2[1] + skinRef3[1]) / 3;
+        const bSkin = (skinRef1[2] + skinRef2[2] + skinRef3[2]) / 3;
+        const skinLum = (rSkin + gSkin + bSkin) / 3;
+
+        // 2. Lower Face Samples (Nose tip, Philtrum/Upper Lip, Center Mouth, Lower Lip, Chin)
+        const noseTip = samplePatch(nose[6], 2);
+        const upperLip = samplePatch(mouth[3], 2);
+        const centerMouth = samplePatch(mouth[14] || mouth[0], 2);
+        const lowerLip = samplePatch(mouth[9], 2);
+        const chin = samplePatch(jaw[8], 3);
+
+        const lowerSamples = [noseTip, upperLip, centerMouth, lowerLip, chin];
+        const rLower = lowerSamples.reduce((acc, s) => acc + s[0], 0) / lowerSamples.length;
+        const gLower = lowerSamples.reduce((acc, s) => acc + s[1], 0) / lowerSamples.length;
+        const bLower = lowerSamples.reduce((acc, s) => acc + s[2], 0) / lowerSamples.length;
+        const lowerLum = (rLower + gLower + bLower) / 3;
+
+        // 3. Mask Indicators:
+        // A. Surgical Blue / Cyan Mask (High Blue relative to Green/Red on lower face)
+        const isBlueMask = (bLower > rLower + 8 && bLower > 50) || 
+                           (centerMouth[2] > centerMouth[0] + 10 && centerMouth[2] > 50);
+
+        // B. Dark / Black Mask (Lower face is noticeably darker than bare skin)
+        const isDarkMask = (lowerLum < 55 && skinLum > 75 && (skinLum - lowerLum) > 30) ||
+                           (centerMouth[0] < 45 && centerMouth[1] < 45 && centerMouth[2] < 45 && skinLum > 70);
+
+        // C. White / Light Surgical Mask (Low saturation + high luminance without natural lip tone)
+        const lowerSat = Math.max(rLower, gLower, bLower) - Math.min(rLower, gLower, bLower);
+        const isWhiteMask = (lowerLum > 135 && lowerSat < 14 && (rSkin - bSkin) > 18);
+
+        // D. General Mask Covering (Color deviation from upper skin reference)
+        const colorDiff = Math.hypot(rLower - rSkin, gLower - gSkin, bLower - bSkin);
+
+        // E. Natural Lip check (Bare lips have natural reddish chroma: R > G + 12 and R > B + 16)
+        const lipRedness = Math.max(upperLip[0] - upperLip[1], lowerLip[0] - lowerLip[1], centerMouth[0] - centerMouth[1]);
+        const hasVisibleLips = (lipRedness >= 12) && (centerMouth[0] > centerMouth[2] + 14);
+
+        // If lips are naturally exposed and visible => definitely NO MASK
+        if (hasVisibleLips && !isBlueMask && !isDarkMask) {
+          return false;
         }
 
-        if (grays.length < 10) return false;
-
-        // Texture variance: bare skin and lips have natural texture; masks are smooth and flat
-        const meanGray = grays.reduce((a, b) => a + b, 0) / grays.length;
-        const stdDev   = Math.sqrt(grays.reduce((s, g) => s + (g - meanGray) ** 2, 0) / grays.length);
-
-        // Saturation check: bare lips/skin have higher natural saturation; surgical masks have low saturation
-        let satSum = 0;
-        for (let i = 0; i < rVals.length; i++) {
-          const max = Math.max(rVals[i], gVals[i], bVals[i]);
-          const min = Math.min(rVals[i], gVals[i], bVals[i]);
-          satSum += max === 0 ? 0 : (max - min) / max;
+        if (isBlueMask || isDarkMask || isWhiteMask) {
+          return true;
         }
-        const avgSat = satSum / rVals.length;
 
-        const sens = this.sensitivity?.value ? (Number(this.sensitivity.value) / 100) : 0.75;
-        const varThresh = 10 + sens * 12;
-        const satThresh = 0.06 + sens * 0.06;
+        const sensVal = this.sensitivity?.value ? Number(this.sensitivity.value) : 50;
+        const diffThreshold = 46 - (sensVal - 50) * 0.3;
 
-        return stdDev < varThresh && avgSat < satThresh;
+        return colorDiff > diffThreshold;
       } catch (e) {
-        return false; // Default: NO MASK
+        return false;
       }
     };
 
-    const isIdCardWorn = (box, landmarks, scaleX, scaleY) => {
+    const isIdCardWorn = (box, landmarks, scaleX, scaleY, extractCanvas, extractCtx) => {
       try {
+        if (!extractCanvas || !extractCtx) {
+          return { hasId: false, isDsatm: false, cardName: 'No ID Card', confidence: 0, chestBox: null };
+        }
+
         const jaw = landmarks?.getJawOutline ? landmarks.getJawOutline() : null;
-        // Anchor chest region below the chin
         const chinY = jaw ? jaw[8].y : (box.y + box.height);
         const chinX = jaw ? jaw[8].x : (box.x + box.width / 2);
 
-        // Centered upper chest ROI (where ID cards and lanyards hang)
-        const chestDispW = box.width * 0.9;
-        const chestDispH = box.height * 1.25;
+        // Chest Region of Interest (ROI)
+        const chestDispW = box.width * 1.8;
+        const chestDispH = box.height * 1.8;
         const chestDispX = chinX - chestDispW / 2;
-        const chestDispY = chinY + box.height * 0.08;
+        const chestDispY = chinY;
 
         const imgW = extractCanvas.width;
         const imgH = extractCanvas.height;
@@ -2162,80 +2200,95 @@ class WebcamMaskDetector {
         }
 
         const count = len / 4;
-        let lanyardBluePixels = 0;
+        let totalBluePixels = 0;
         let yellowBannerPixels = 0;
         let whiteCardPixels = 0;
+        let darkBluePixels = 0;
 
         for (let i = 0; i < len; i += 4) {
           const r = data[i];
           const g = data[i + 1];
           const b = data[i + 2];
 
-          // 1. Saturated Royal Blue Lanyard (must be vividly blue, not dark shirt or grey shadow)
-          if ((b >= 80 && (b - r) >= 28 && (b - g) >= 18) || 
-              (b >= 95 && (b / Math.max(1, r)) >= 1.4 && (b / Math.max(1, g)) >= 1.25)) {
-            lanyardBluePixels++;
-          }
+          const condA = (b >= 50) && ((b - r) >= 12) && ((b - g) >= 6);
+          const condB = (b >= 65) && (b / Math.max(1, r) >= 1.15) && (b / Math.max(1, g) >= 1.10);
+          const condC = (b >= 80) && ((b - r) >= 20) && ((b - g) >= 12);
 
-          // 2. DSATM Yellow Header Banner (must be bright saturated yellow/gold, not bare skin/neck)
-          if (r >= 140 && g >= 115 && b <= 95 && (r + g) >= (b * 2.2) && Math.abs(r - g) <= 45) {
+          if (condC) darkBluePixels++;
+          if (condA || condB || condC) totalBluePixels++;
+
+          // DSATM Gold/Yellow Header Banner
+          if (r >= 100 && g >= 80 && b <= 120 && (r + g) >= (b * 1.8) && Math.abs(r - g) <= 55) {
             yellowBannerPixels++;
           }
 
-          // 3. White ID Card Body (high brightness and neutral color)
-          if (r > 150 && g > 150 && b > 150 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
+          // White/Light ID Card body
+          if (r > 130 && g > 130 && b > 130 && Math.abs(r - g) < 30 && Math.abs(g - b) < 30) {
             whiteCardPixels++;
           }
         }
 
-        const blueRatio   = (lanyardBluePixels / count) * 100;
+        const blueRatio = (totalBluePixels / count) * 100;
         const yellowRatio = (yellowBannerPixels / count) * 100;
-        const whiteRatio  = (whiteCardPixels  / count) * 100;
+        const whiteRatio = (whiteCardPixels / count) * 100;
 
-        // A lanyard is a narrow vertical ribbon (between 3% and 25% of chest ROI).
-        // If blue covers > 40%, it's a blue shirt, not an ID lanyard.
-        const hasLanyardStrap   = blueRatio >= 3.0 && blueRatio <= 28.0;
-        // White card face must be a distinct badge on the chest (6% to 40%).
-        const hasWhiteCardBadge = whiteRatio >= 6.0 && whiteRatio <= 40.0;
-        const hasYellowBanner   = yellowRatio >= 1.5;
+        // --- Vertical Lanyard Localization Check ---
+        const COLS = 8;
+        const ROWS = 6;
+        const bandH = Math.max(1, Math.floor(sh / ROWS));
+        const bandW = Math.max(1, Math.floor(sw / COLS));
+        const blueGrid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 
-        // An ID card is detected ONLY if a white badge is physically present
-        // alongside a royal-blue lanyard or institutional yellow banner
-        const hasId = hasWhiteCardBadge && (hasLanyardStrap || hasYellowBanner);
-        const isDsatm = hasId && (hasYellowBanner || blueRatio >= 4.0);
+        for (let bi = 0; bi < len; bi += 4) {
+          const pixelIndex = bi / 4;
+          const pixelRow = Math.floor(pixelIndex / Math.max(1, sw));
+          const pixelCol = pixelIndex % Math.max(1, sw);
+          const row = Math.min(ROWS - 1, Math.floor(pixelRow / bandH));
+          const col = Math.min(COLS - 1, Math.floor(pixelCol / bandW));
+          const rp = data[bi], gp = data[bi + 1], bp = data[bi + 2];
+          
+          if (bp >= 50 && (bp - rp) >= 12 && (bp - gp) >= 6) {
+            blueGrid[row][col]++;
+          }
+        }
+
+        // Count vertical active rows per column
+        const colBlueCounts = new Array(COLS).fill(0);
+        for (let col = 0; col < COLS; col++) {
+          for (let row = 0; row < ROWS; row++) {
+            if (blueGrid[row][col] >= 8) colBlueCounts[col]++;
+          }
+        }
+
+        const activeCols = colBlueCounts.filter(c => c >= 3).length;
+        const maxColRows = Math.max(...colBlueCounts);
+
+        // Lanyard must be vertically continuous (>=3 rows) AND narrow (covers 1 to 3 columns max)
+        const isLocalizedStrap = maxColRows >= 3 && activeCols > 0 && activeCols <= 3;
+        const hasWhiteCard = whiteRatio >= 6.0;
+        const hasYellow = yellowRatio >= 0.8;
+
+        // Strict multi-feature decision rule (prevents blue clothing false positives)
+        const hasId =
+          (isLocalizedStrap && hasWhiteCard) ||
+          (isLocalizedStrap && hasYellow) ||
+          (hasWhiteCard && hasYellow && blueRatio >= 1.0);
 
         if (!hasId) {
-          return {
-            hasId: false,
-            isDsatm: false,
-            cardName: 'No ID Card',
-            confidence: 0,
-            chestBox: null
-          };
+          return { hasId: false, isDsatm: false, cardName: 'No ID Card', confidence: 0, chestBox: null };
         }
 
         const confidence = Math.min(98, Math.max(85, Math.round(85 + Math.min(8, blueRatio) + Math.min(5, yellowRatio))));
-
         return {
           hasId: true,
-          isDsatm,
-          cardName: isDsatm ? 'DSATM College ID Card' : 'ID Card',
+          isDsatm: true,
+          cardName: 'DSATM College ID Card',
           confidence,
-          chestBox: {
-            x: chestDispX,
-            y: chestDispY,
-            width: chestDispW,
-            height: chestDispH
-          }
+          chestBox: { x: chestDispX, y: chestDispY, width: chestDispW, height: chestDispH }
         };
       } catch (e) {
-        return {
-          hasId: false,
-          isDsatm: false,
-          cardName: 'No ID Card',
-          confidence: 0,
-          chestBox: null
-        };
+        console.error('[ID] Error:', e);
+        return { hasId: false, isDsatm: false, cardName: 'No ID Card', confidence: 0, chestBox: null };
       }
     };
 
@@ -2283,7 +2336,12 @@ class WebcamMaskDetector {
           extractCanvas.height = this.video.videoHeight || 480;
         }
 
-        // Draw unmirrored so face-api landmark coordinates align directly with pixel positions
+        extractCtx.save();
+
+        // Draw video MIRRORED to match the displayed scaleX(-1) transform,
+        // so face-api landmark x-coordinates align with sampled pixel positions.
+        extractCtx.translate(extractCanvas.width, 0);
+        extractCtx.scale(-1, 1);
         extractCtx.drawImage(
           this.video,
           0,
@@ -2291,6 +2349,8 @@ class WebcamMaskDetector {
           extractCanvas.width,
           extractCanvas.height
         );
+
+        extractCtx.restore();
 
         const scaleX = extractCanvas.width / displaySize.width;
         const scaleY = extractCanvas.height / displaySize.height;
@@ -2335,7 +2395,7 @@ class WebcamMaskDetector {
           );
 
           // ID Card detection on chest ROI
-          const idDetection = isIdCardWorn(box, det.landmarks, scaleX, scaleY);
+          const idDetection = isIdCardWorn(box, det.landmarks, scaleX, scaleY, extractCanvas, extractCtx);
           const hasId = idDetection.hasId;
 
           const age = det.age
@@ -2612,11 +2672,6 @@ class WebcamMaskDetector {
 
         updatePersonsTable(personRows);
 
-        // Security AI Suite: Centroid Tracking, Zones, Anomaly & Incident Engine
-        if (window.SecurityAI) {
-          window.SecurityAI.processFrame('cam1', 'Cam 01: Live Entrance (Webcam)', resized, drawCanvas, this.video);
-        }
-
         // Synchronize live Cam 01 ID compliance into Analytics
         if (window._dashSim && window._dashSim.camIdStats) {
           const totalInFrame = resized.length;
@@ -2841,61 +2896,53 @@ class VideoMaskDetector {
       const sx  = pc.width  / displayW;
       const sy  = pc.height / displayH;
 
-      const jaw   = landmarks?.getJawOutline ? landmarks.getJawOutline() : null;
+      const jaw = landmarks?.getJawOutline ? landmarks.getJawOutline() : null;
       const chinY = jaw ? jaw[8].y : (box.y + box.height);
       const chinX = jaw ? jaw[8].x : (box.x + box.width / 2);
 
-      // Focus strictly on the upper chest below chin (where lanyards & ID badges hang)
-      const chestW = box.width * 0.9;
-      const chestH = box.height * 1.2;
-      const chestX = chinX - chestW / 2;
-      const chestY = chinY + box.height * 0.05;
+      const chestDispW = box.width * 1.0;
+      const chestDispH = box.height * 1.15;
+      const chestDispX = chinX - chestDispW / 2;
+      const chestDispY = chinY + box.height * 0.08;
 
-      const px = Math.max(0, Math.min(pc.width  - 2, Math.round(chestX * sx)));
-      const py = Math.max(0, Math.min(pc.height - 2, Math.round(chestY * sy)));
-      const pw = Math.max(2,  Math.min(pc.width  - px, Math.round(chestW * sx)));
-      const ph = Math.max(2,  Math.min(pc.height - py, Math.round(chestH * sy)));
+      const px = Math.max(0, Math.min(pc.width - 10, Math.round(chestDispX * sx)));
+      const py = Math.max(0, Math.min(pc.height - 10, Math.round(chestDispY * sy)));
+      const pw = Math.max(10, Math.min(pc.width - px, Math.round(chestDispW * sx)));
+      const ph = Math.max(10, Math.min(pc.height - py, Math.round(chestDispH * sy)));
 
-      const imgData = ctx.getImageData(px, py, pw, ph);
-      const d = imgData.data;
+      const d = ctx.getImageData(px, py, pw, ph).data;
       if (d.length < 64) return { hasId: false, isDsatm: false, chestBox: null };
 
-      let blueCount = 0;
-      let whiteCount = 0;
-      let yellowCount = 0;
-      const total = d.length / 4;
+      let blueCount = 0, yellowCount = 0, whiteCount = 0;
+      const count = d.length / 4;
 
       for (let i = 0; i < d.length; i += 4) {
-        const r = d[i], g = d[i + 1], b = d[i + 2];
-
-        // Lanyard blue: strong saturation & clear blue dominance over R and G
-        if ((b >= 65 && b > r + 20 && b > g + 15) || (b >= 75 && b / Math.max(1, r) >= 1.25 && b / Math.max(1, g) >= 1.15)) {
+        const r = d[i], g = d[i+1], b = d[i+2];
+        if ((b > 65 && b > r + 30 && b > g + 20) || (b > 80 && b > r * 1.45 && b > g * 1.2)) {
           blueCount++;
         }
-        // White/Light card body: high brightness and neutral balance
-        if (r > 140 && g > 140 && b > 140 && Math.abs(r - g) < 25 && Math.abs(g - b) < 25) {
-          whiteCount++;
-        }
-        // DSATM Yellow/Gold header
-        if (r >= 110 && g >= 90 && b < 100 && (r + g) > (b * 1.9) && Math.abs(r - g) < 55) {
+        if (r > 145 && g > 125 && b < 100 && (r + g) > (b * 2.4) && Math.abs(r - g) < 45) {
           yellowCount++;
+        }
+        if (r > 145 && g > 145 && b > 145 && Math.abs(r - g) < 18 && Math.abs(g - b) < 18) {
+          whiteCount++;
         }
       }
 
-      const blueRatio   = (blueCount   / total) * 100;
-      const whiteRatio  = (whiteCount  / total) * 100;
-      const yellowRatio = (yellowCount / total) * 100;
+      const blueRatio = (blueCount / count) * 100;
+      const yellowRatio = (yellowCount / count) * 100;
+      const whiteRatio = (whiteCount / count) * 100;
 
-      // Real ID requires the presence of a physical white badge AND blue lanyard/yellow banner
-      const hasId = (whiteRatio >= 7.0 && blueRatio >= 3.5) ||
-                    (whiteRatio >= 10.0 && yellowRatio >= 1.8);
+      const hasId = (blueRatio >= 1.8) || (yellowRatio >= 0.7 && whiteRatio >= 5.5) || (blueRatio >= 0.9 && whiteRatio >= 5.5);
 
-      const isDsatm = hasId && (yellowRatio >= 1.2 || blueRatio >= 5.0);
+      if (!hasId) {
+        return { hasId: false, isDsatm: false, chestBox: null };
+      }
 
       return {
-        hasId,
-        isDsatm,
-        chestBox: hasId ? { x: chestX, y: chestY, width: chestW, height: chestH } : null
+        hasId: true,
+        isDsatm: true,
+        chestBox: { x: chestDispX, y: chestDispY, width: chestDispW, height: chestDispH }
       };
     } catch {
       return { hasId: false, isDsatm: false, chestBox: null };
@@ -3087,11 +3134,6 @@ class VideoMaskDetector {
         updateViolatorsPanel(newViolators, noMaskCount);
         updatePersonsTable(personRows);
 
-        // Security AI Suite: Centroid Tracking, Zones, Anomaly & Incident Engine
-        if (window.SecurityAI) {
-          window.SecurityAI.processFrame('cam2', 'Cam 02: North Gate Main', resized, drawCanvas, this.video);
-        }
-
         // Alert on violation
         const now = Date.now();
         if (noMaskCount > 0 && now - this.lastAlertTime > 8000) {
@@ -3121,15 +3163,22 @@ class VideoMaskDetector {
 }
 
 // ============================================================
-// CAM 03 VIDEO MASK + EMOTION DETECTOR
+// CAM 03 / CAM 04 VIDEO MASK + ID DETECTOR
 // ============================================================
 
-class VideoCam3Detector {
-  constructor() {
-    this.video      = document.getElementById('cam3-video');
-    this.container  = document.getElementById('cam3-card')?.querySelector('.camera-view');
-    this.countEl    = document.getElementById('cam3-count');
-    this.densityEl  = document.getElementById('cam3-density');
+class VideoCamDetector {
+  constructor(opts = {}) {
+    const key = opts.key || 'cam3';
+    this.camKey    = key;
+    this.camLabel  = opts.camLabel  || 'Cam 03';
+    this.zoneLabel = opts.zoneLabel || 'Cam 03 – West Gate';
+    this.feedLabel = opts.feedLabel || 'West Gate Feed';
+    this.canvasId  = `${key}-canvas`;
+
+    this.video      = document.getElementById(`${key}-video`);
+    this.container  = document.getElementById(`${key}-card`)?.querySelector('.camera-view');
+    this.countEl    = document.getElementById(`${key}-count`);
+    this.densityEl  = document.getElementById(`${key}-density`);
 
     if (!this.video || !this.container) return;
 
@@ -3185,396 +3234,7 @@ class VideoCam3Detector {
 
       this.startDetectionLoop();
     } catch (e) {
-      console.error('Cam03 AI init failed', e);
-      if (this.densityEl) {
-        this.densityEl.innerText = '⚠ AI unavailable';
-        this.densityEl.style.color = '#f59e0b';
-      }
-    }
-  }
-
-  assignId(box) {
-    const cx = box.x + box.width / 2;
-    const cy = box.y + box.height / 2;
-    let best = null, bestDist = 9999;
-    this.faceIdMap.forEach(f => {
-      const d = Math.hypot(cx - f.cx, cy - f.cy);
-      if (d < 80 && d < bestDist) { bestDist = d; best = f; }
-    });
-    if (best) { best.cx = cx; best.cy = cy; return best.id; }
-    const id = this.faceIdMap.length + 1;
-    this.faceIdMap.push({ id, cx, cy });
-    if (this.faceIdMap.length > 20) this.faceIdMap.shift();
-    return id;
-  }
-
-  isMaskWorn(landmarks, displayW, displayH) {
-    try {
-      const pc  = this.processCanvas;
-      const ctx = this.processCtx;
-      const sx  = pc.width  / displayW;
-      const sy  = pc.height / displayH;
-      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-
-      const nose       = landmarks.getNose();
-      const jaw        = landmarks.getJawOutline();
-      const mouth      = landmarks.getMouth();
-      const noseTip    = nose[6];
-      const chin       = jaw[8];
-      const leftCheek  = jaw[3];
-      const rightCheek = jaw[13];
-      const mouthMid   = {
-        x: (mouth[0].x + mouth[6].x) / 2,
-        y: (mouth[0].y + mouth[6].y) / 2
-      };
-
-      const samplePts = [noseTip, chin, leftCheek, rightCheek, mouthMid];
-      const grays = [], rVals = [], gVals = [], bVals = [];
-
-      for (const pt of samplePts) {
-        const px = clamp(Math.round(pt.x * sx) - 6, 0, pc.width  - 13);
-        const py = clamp(Math.round(pt.y * sy) - 6, 0, pc.height - 13);
-        const d  = ctx.getImageData(px, py, 12, 12).data;
-        for (let i = 0; i < d.length; i += 4) {
-          grays.push(d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
-          rVals.push(d[i] / 255);
-          gVals.push(d[i+1] / 255);
-          bVals.push(d[i+2] / 255);
-        }
-      }
-
-      if (grays.length < 10) return false;
-
-      const meanGray = grays.reduce((a, b) => a + b, 0) / grays.length;
-      const stdDev   = Math.sqrt(
-        grays.reduce((s, g) => s + (g - meanGray) ** 2, 0) / grays.length
-      );
-
-      let satSum = 0;
-      for (let i = 0; i < rVals.length; i++) {
-        const max = Math.max(rVals[i], gVals[i], bVals[i]);
-        const min = Math.min(rVals[i], gVals[i], bVals[i]);
-        satSum += max === 0 ? 0 : (max - min) / max;
-      }
-      const avgSat = satSum / rVals.length;
-
-      const sens      = this.sensitivity?.value ? (this.sensitivity.value / 100) : 0.75;
-      const varThresh = 10 + sens * 12;
-      const satThresh = 0.06 + sens * 0.06;
-
-      return stdDev < varThresh && avgSat < satThresh;
-
-    } catch {
-      return false;
-    }
-  }
-
-   isIdCardWorn(landmarks, box, displayW, displayH) {
-    try {
-      const pc  = this.processCanvas;
-      const ctx = this.processCtx;
-      const sx  = pc.width  / displayW;
-      const sy  = pc.height / displayH;
-
-      const jaw   = landmarks?.getJawOutline ? landmarks.getJawOutline() : null;
-      const chinY = jaw ? jaw[8].y : (box.y + box.height);
-      const chinX = jaw ? jaw[8].x : (box.x + box.width / 2);
-
-      const chestW = box.width * 0.9;
-      const chestH = box.height * 1.2;
-      const chestX = chinX - chestW / 2;
-      const chestY = chinY + box.height * 0.05;
-
-      const px = Math.max(0, Math.min(pc.width  - 2, Math.round(chestX * sx)));
-      const py = Math.max(0, Math.min(pc.height - 2, Math.round(chinY * sy)));
-      const pw = Math.max(2,  Math.min(pc.width  - px, Math.round(chestW * sx)));
-      const ph = Math.max(2,  Math.min(pc.height - py, Math.round(chestH * sy)));
-
-      const imgData = ctx.getImageData(px, py, pw, ph);
-      const d = imgData.data;
-      if (d.length < 64) return { hasId: false, isDsatm: false, chestBox: null };
-
-      let blueCount = 0;
-      let whiteCount = 0;
-      let yellowCount = 0;
-      const total = d.length / 4;
-
-      for (let i = 0; i < d.length; i += 4) {
-        const r = d[i], g = d[i + 1], b = d[i + 2];
-
-        if ((b >= 65 && b > r + 20 && b > g + 15) || (b >= 75 && b / Math.max(1, r) >= 1.25 && b / Math.max(1, g) >= 1.15)) {
-          blueCount++;
-        }
-        if (r > 140 && g > 140 && b > 140 && Math.abs(r - g) < 25 && Math.abs(g - b) < 25) {
-          whiteCount++;
-        }
-        if (r >= 110 && g >= 90 && b < 100 && (r + g) > (b * 1.9) && Math.abs(r - g) < 55) {
-          yellowCount++;
-        }
-      }
-
-      const blueRatio   = (blueCount   / total) * 100;
-      const whiteRatio  = (whiteCount  / total) * 100;
-      const yellowRatio = (yellowCount / total) * 100;
-
-      const hasId = (whiteRatio >= 7.0 && blueRatio >= 3.5) ||
-                    (whiteRatio >= 10.0 && yellowRatio >= 1.8);
-
-      const isDsatm = hasId && (yellowRatio >= 1.2 || blueRatio >= 5.0);
-
-      return {
-        hasId,
-        isDsatm,
-        chestBox: hasId ? { x: chestX, y: chestY, width: chestW, height: chestH } : null
-      };
-    } catch {
-      return { hasId: false, isDsatm: false, chestBox: null };
-    }
-  }
-
-
-  startDetectionLoop() {
-    // Reuse existing canvas element injected in HTML
-    const drawCanvas = document.getElementById('cam3-canvas');
-    if (!drawCanvas) return;
-
-    if (this.densityEl) {
-      this.densityEl.innerText   = 'Scanning…';
-      this.densityEl.style.color = '#10b981';
-    }
-
-    let lastRun = 0;
-    let running = false;
-    const INTERVAL = 600;
-
-    const loop = async (ts) => {
-      requestAnimationFrame(loop);
-
-      if (running) return;
-      if (ts - lastRun < INTERVAL) return;
-      if (this.video.paused || this.video.readyState < 2) return;
-
-      const displayW = this.video.clientWidth;
-      const displayH = this.video.clientHeight;
-      if (!displayW || !displayH) return;
-
-      lastRun = ts;
-      running = true;
-
-      try {
-        this.processCtx.drawImage(
-          this.video, 0, 0,
-          this.processCanvas.width, this.processCanvas.height
-        );
-
-        const displaySize = { width: displayW, height: displayH };
-
-        const detections = await faceapi
-          .detectAllFaces(
-            this.processCanvas,
-            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.30, maxResults: 50 })
-          )
-          .withFaceLandmarks()
-          .withAgeAndGender()
-          .withFaceExpressions();
-
-        faceapi.matchDimensions(drawCanvas, displaySize);
-        const resized = faceapi.resizeResults(detections, displaySize);
-
-        const ctx = drawCanvas.getContext('2d');
-        ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-
-        if (this.countEl) this.countEl.innerText = detections.length;
-
-        let noMaskCount = 0;
-        let noIdCount   = 0;
-
-        resized.forEach(det => {
-          const { box }  = det.detection;
-          const faceId   = this.assignId(box);
-
-          const masked   = this.isMaskWorn(det.landmarks, displayW, displayH);
-          const idInfo   = this.isIdCardWorn(det.landmarks, box, displayW, displayH);
-          const hasId    = idInfo.hasId;
-
-          const age      = det.age    ? Math.round(det.age) : '?';
-          const aiGender = det.gender ? (det.gender === 'male' ? 'Male' : 'Female') : '?';
-
-          let emotion = '?';
-          if (det.expressions) {
-            const sorted = Object.entries(det.expressions).sort((a, b) => b[1] - a[1]);
-            emotion = sorted[0][0];
-          }
-
-          if (!masked) noMaskCount++;
-          if (!hasId)  noIdCount++;
-
-          // Corner-bracket bounding box
-          const color = masked ? '#10b981' : '#ef4444';
-          ctx.strokeStyle = color;
-          ctx.lineWidth   = 2.5;
-          const bLen = 16;
-          [[box.x, box.y], [box.x + box.width, box.y],
-           [box.x, box.y + box.height], [box.x + box.width, box.y + box.height]
-          ].forEach(([cx, cy], i) => {
-            ctx.beginPath();
-            ctx.moveTo(cx + (i % 2 === 0 ? bLen : -bLen), cy);
-            ctx.lineTo(cx, cy);
-            ctx.lineTo(cx, cy + (i < 2 ? bLen : -bLen));
-            ctx.stroke();
-          });
-
-          // Top label
-          const label = hasId
-            ? (masked ? `ID: OK · MASK ON · ${emotion.toUpperCase()}` : `ID: OK · NO MASK · ${emotion.toUpperCase()}`)
-            : (masked ? `NO ID ⚠ · MASK ON · ${emotion.toUpperCase()}` : `NO ID · NO MASK · ${emotion.toUpperCase()}`);
-          ctx.font = 'bold 11px Inter, monospace';
-          const labelW = ctx.measureText(label).width + 16;
-          ctx.fillStyle = masked ? 'rgba(16,185,129,0.92)' : 'rgba(239,68,68,0.92)';
-          ctx.beginPath();
-          ctx.roundRect(box.x, box.y - 28, labelW, 24, 4);
-          ctx.fill();
-          ctx.fillStyle = '#fff';
-          ctx.fillText(label, box.x + 8, box.y - 11);
-
-          // Bottom info label
-          const infoLabel = `Visitor · ID: ${hasId ? 'OK' : 'OFF'} · ~${age}yr · ${emotion}`;
-          ctx.font = '10px Inter, monospace';
-          const infoW = ctx.measureText(infoLabel).width + 14;
-          ctx.fillStyle = 'rgba(10,15,30,0.82)';
-          ctx.beginPath();
-          ctx.roundRect(box.x, box.y + box.height + 2, infoW, 20, 4);
-          ctx.fill();
-          ctx.fillStyle = '#e2e8f0';
-          ctx.fillText(infoLabel, box.x + 7, box.y + box.height + 15);
-        });
-
-        // Density overlay
-        if (this.densityEl) {
-          if (noMaskCount === 0) {
-            this.densityEl.innerText = detections.length > 0
-              ? `✓ ${detections.length} Detected – All Clear`
-              : 'Scanning…';
-            this.densityEl.style.color = '#10b981';
-            this.densityEl.classList.remove('warning-overlay');
-          } else {
-            this.densityEl.innerText = `⚠ ${noMaskCount}/${detections.length} WITHOUT MASK`;
-            this.densityEl.style.color = '#ef4444';
-            this.densityEl.classList.add('warning-overlay');
-          }
-        }
-
-        // Sync to analytics
-        if (window._dashSim?.camIdStats?.cam3) {
-          const total     = detections.length;
-          const compliant = total - noIdCount;
-          window._dashSim.camIdStats.cam3 = {
-            total,
-            compliant,
-            violations: noIdCount,
-            rate: total > 0 ? Math.round((compliant / total) * 100) : 0
-          };
-        }
-
-        // Security AI Suite: Centroid Tracking, Zones, Anomaly & Incident Engine
-        if (window.SecurityAI) {
-          window.SecurityAI.processFrame('cam3', 'Cam 03: Sector 7 - West Gate', resized, drawCanvas, this.video);
-        }
-
-        // Alert on violation
-        const now = Date.now();
-        if (noMaskCount > 0 && now - this.lastAlertTime > 8000) {
-          this.lastAlertTime = now;
-          window._dashSim?.addAlert({
-            type: 'critical',
-            title: 'No-Mask Violation – Cam 03',
-            message: `${noMaskCount} person(s) without mask — West Gate Feed`,
-            icon: 'bx-mask',
-            zone: 'Cam 03 – West Gate'
-          }, new Date().toLocaleTimeString([], {
-            hour: '2-digit', minute: '2-digit'
-          }) + ' (Live)');
-          if (window._dashSim) window._dashSim.activeAlerts++;
-          window._dashSim?.updateAlertCounters();
-        }
-
-      } catch (err) {
-        console.error('Cam03 AI detection error', err);
-      }
-
-      running = false;
-    };
-
-    requestAnimationFrame(loop);
-  }
-}
-
-// ============================================================
-// CAM 04 VIDEO MASK + ID + EMOTION DETECTOR (Sector 2 - Food Court)
-// ============================================================
-
-class VideoCam4Detector {
-  constructor() {
-    this.video      = document.getElementById('cam4-video');
-    this.container  = document.getElementById('cam4-card')?.querySelector('.camera-view');
-    this.countEl    = document.getElementById('cam4-count');
-    this.densityEl  = document.getElementById('cam4-density');
-
-    if (!this.video || !this.container) return;
-
-    if (this.densityEl) {
-      this.densityEl.innerText = '⏳ Loading AI…';
-      this.densityEl.style.color = '#f59e0b';
-    }
-
-    this.faceIdMap = [];
-    this.lastAlertTime = 0;
-    this.sensitivity = document.getElementById('sensitivity-range');
-
-    this.processCanvas        = document.createElement('canvas');
-    this.processCanvas.width  = 960;
-    this.processCanvas.height = 540;
-    this.processCtx = this.processCanvas.getContext('2d', { willReadFrequently: true });
-
-    this.initAI();
-  }
-
-  async initAI() {
-    const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
-
-    const waitForFaceApi = () => new Promise((resolve, reject) => {
-      let tries = 0;
-      const t = setInterval(() => {
-        if (typeof faceapi !== 'undefined') { clearInterval(t); resolve(); }
-        if (++tries > 60) { clearInterval(t); reject(new Error('face-api not ready')); }
-      }, 250);
-    });
-
-    try {
-      await waitForFaceApi();
-
-      const alreadyLoaded =
-        faceapi.nets.ssdMobilenetv1.isLoaded &&
-        faceapi.nets.faceLandmark68Net.isLoaded &&
-        faceapi.nets.faceExpressionNet.isLoaded;
-
-      if (!alreadyLoaded) {
-        await Promise.all([
-          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-          faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL),
-          faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
-        ]);
-      }
-
-      await new Promise(res => {
-        if (this.video.readyState >= 1) return res();
-        this.video.addEventListener('loadedmetadata', res, { once: true });
-      });
-
-      this.startDetectionLoop();
-    } catch (e) {
-      console.error('Cam04 AI init failed', e);
+      console.error(`${this.camLabel} AI init failed`, e);
       if (this.densityEl) {
         this.densityEl.innerText = '⚠ AI unavailable';
         this.densityEl.style.color = '#f59e0b';
@@ -3665,90 +3325,60 @@ class VideoCam4Detector {
       const sx  = pc.width  / displayW;
       const sy  = pc.height / displayH;
 
-      const jaw   = landmarks?.getJawOutline ? landmarks.getJawOutline() : null;
+      const jaw = landmarks?.getJawOutline ? landmarks.getJawOutline() : null;
       const chinY = jaw ? jaw[8].y : (box.y + box.height);
       const chinX = jaw ? jaw[8].x : (box.x + box.width / 2);
 
-      const scanRegion = (dispX, dispY, dispW, dispH) => {
-        const px = Math.max(0, Math.min(pc.width  - 2, Math.round(dispX * sx)));
-        const py = Math.max(0, Math.min(pc.height - 2, Math.round(dispY * sy)));
-        const pw = Math.max(2,  Math.min(pc.width  - px, Math.round(dispW * sx)));
-        const ph = Math.max(2,  Math.min(pc.height - py, Math.round(dispH * sy)));
-        const d  = ctx.getImageData(px, py, pw, ph).data;
-        if (d.length < 16) return null;
-        let blueCount = 0, navyCount = 0, yellowCount = 0, whiteCount = 0;
-        const total = d.length / 4;
-        for (let i = 0; i < d.length; i += 4) {
-          const r = d[i], g = d[i+1], b = d[i+2];
-          if ((b > 55 && b > r + 20 && b > g + 15) || (b > 70 && b > r * 1.3 && b > g * 1.1)) blueCount++;
-          if (b > 30 && b > r * 1.5 && b > g * 1.3 && (r+g+b) > 40 && (r+g+b) < 320) navyCount++;
-          if (r > 130 && g > 110 && b < 110 && (r+g) > (b*2.2) && Math.abs(r-g) < 55) yellowCount++;
-          if (r > 130 && g > 130 && b > 130 && Math.abs(r-g) < 22 && Math.abs(g-b) < 22) whiteCount++;
+      const chestDispW = box.width * 1.0;
+      const chestDispH = box.height * 1.15;
+      const chestDispX = chinX - chestDispW / 2;
+      const chestDispY = chinY + box.height * 0.08;
+
+      const px = Math.max(0, Math.min(pc.width - 10, Math.round(chestDispX * sx)));
+      const py = Math.max(0, Math.min(pc.height - 10, Math.round(chestDispY * sy)));
+      const pw = Math.max(10, Math.min(pc.width - px, Math.round(chestDispW * sx)));
+      const ph = Math.max(10, Math.min(pc.height - py, Math.round(chestDispH * sy)));
+
+      const d = ctx.getImageData(px, py, pw, ph).data;
+      if (d.length < 64) return { hasId: false, isDsatm: false, chestBox: null };
+
+      let blueCount = 0, yellowCount = 0, whiteCount = 0;
+      const count = d.length / 4;
+
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i+1], b = d[i+2];
+        if ((b > 65 && b > r + 30 && b > g + 20) || (b > 80 && b > r * 1.45 && b > g * 1.2)) {
+          blueCount++;
         }
-        return {
-          blueRatio:   (blueCount   / total) * 100,
-          navyRatio:   (navyCount   / total) * 100,
-          yellowRatio: (yellowCount / total) * 100,
-          whiteRatio:  (whiteCount  / total) * 100
-        };
+        if (r > 145 && g > 125 && b < 100 && (r + g) > (b * 2.4) && Math.abs(r - g) < 45) {
+          yellowCount++;
+        }
+        if (r > 145 && g > 145 && b > 145 && Math.abs(r - g) < 18 && Math.abs(g - b) < 18) {
+          whiteCount++;
+        }
+      }
+
+      const blueRatio   = (blueCount   / count) * 100;
+      const yellowRatio = (yellowCount / count) * 100;
+      const whiteRatio  = (whiteCount  / count) * 100;
+
+      const hasId = (blueRatio >= 1.8) || (yellowRatio >= 0.7 && whiteRatio >= 5.5) || (blueRatio >= 0.9 && whiteRatio >= 5.5);
+
+      if (!hasId) return { hasId: false, isDsatm: false, chestBox: null };
+
+      return {
+        hasId: true,
+        isDsatm: true,
+        chestBox: { x: chestDispX, y: chestDispY, width: chestDispW, height: chestDispH }
       };
-
-      const checkRatios = (s) => s && (
-        (s.blueRatio  >= 0.8) ||
-        (s.navyRatio  >= 0.3) ||
-        (s.yellowRatio >= 0.4 && s.whiteRatio >= 3.0) ||
-        (s.blueRatio  >= 0.4 && s.whiteRatio >= 3.0) ||
-        (s.blueRatio  >= 0.3 && s.navyRatio  >= 0.2)
-      );
-
-      // Region 1: Lanyard strip (narrow vertical band, neck to chest)
-      const lanyardW = box.width * 0.25;
-      const lanyardH = box.height * 1.6;
-      const lanyardX = chinX - lanyardW / 2;
-      const lanyardY = chinY - box.height * 0.05;
-      const ls = scanRegion(lanyardX, lanyardY, lanyardW, lanyardH);
-      if (ls && (ls.navyRatio >= 0.3 || ls.blueRatio >= 0.5)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: lanyardX, y: lanyardY, width: lanyardW, height: lanyardH } };
-      }
-
-      // Region 2: Chest badge (below chin)
-      const chestW = box.width * 1.1;
-      const chestH = box.height * 1.0;
-      const chestX = chinX - chestW / 2;
-      const chestY = chinY + box.height * 0.05;
-      const cs = scanRegion(chestX, chestY, chestW, chestH);
-      if (checkRatios(cs)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: chestX, y: chestY, width: chestW, height: chestH } };
-      }
-
-      // Region 3: Face / hand-held ID
-      const faceW = box.width  * 1.4;
-      const faceH = box.height * 1.2;
-      const faceX = box.x - box.width * 0.2;
-      const faceY = box.y - box.height * 0.15;
-      const fs = scanRegion(faceX, faceY, faceW, faceH);
-      if (checkRatios(fs)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: faceX, y: faceY, width: faceW, height: faceH } };
-      }
-
-      // Region 4: Wide scan (full person area)
-      const wideW = box.width  * 2.2;
-      const wideH = box.height * 1.2;
-      const wideX = box.x - box.width * 0.6;
-      const wideY = box.y - box.height * 0.1;
-      const ws = scanRegion(wideX, wideY, wideW, wideH);
-      if (checkRatios(ws)) {
-        return { hasId: true, isDsatm: true, chestBox: { x: wideX, y: wideY, width: wideW, height: wideH } };
-      }
-
-      return { hasId: false, isDsatm: false, chestBox: null };
     } catch {
       return { hasId: false, isDsatm: false, chestBox: null };
     }
   }
 
   startDetectionLoop() {
-    const drawCanvas = document.getElementById('cam4-canvas');
+    // Reuse existing canvas element injected in HTML
+    const drawCanvas = document.getElementById(this.canvasId);
     if (!drawCanvas) return;
 
     if (this.densityEl) {
@@ -3804,14 +3434,13 @@ class VideoCam4Detector {
 
         resized.forEach(det => {
           const { box }  = det.detection;
-          const faceId   = this.assignId(box);
+          this.assignId(box);
 
           const masked   = this.isMaskWorn(det.landmarks, displayW, displayH);
           const idInfo   = this.isIdCardWorn(det.landmarks, box, displayW, displayH);
           const hasId    = idInfo.hasId;
 
           const age      = det.age    ? Math.round(det.age) : '?';
-          const aiGender = det.gender ? (det.gender === 'male' ? 'Male' : 'Female') : '?';
 
           let emotion = '?';
           if (det.expressions) {
@@ -3878,20 +3507,15 @@ class VideoCam4Detector {
         }
 
         // Sync to analytics
-        if (window._dashSim?.camIdStats?.cam4) {
+        if (window._dashSim?.camIdStats?.[this.camKey]) {
           const total     = detections.length;
           const compliant = total - noIdCount;
-          window._dashSim.camIdStats.cam4 = {
+          window._dashSim.camIdStats[this.camKey] = {
             total,
             compliant,
             violations: noIdCount,
             rate: total > 0 ? Math.round((compliant / total) * 100) : 0
           };
-        }
-
-        // Security AI Suite: Centroid Tracking, Zones, Anomaly & Incident Engine
-        if (window.SecurityAI) {
-          window.SecurityAI.processFrame('cam4', 'Cam 04: Sector 2 - Food Court', resized, drawCanvas, this.video);
         }
 
         // Alert on violation
@@ -3900,10 +3524,10 @@ class VideoCam4Detector {
           this.lastAlertTime = now;
           window._dashSim?.addAlert({
             type: 'critical',
-            title: 'No-Mask Violation – Cam 04',
-            message: `${noMaskCount} person(s) without mask — Food Court Feed`,
+            title: `No-Mask Violation – ${this.camLabel}`,
+            message: `${noMaskCount} person(s) without mask — ${this.feedLabel}`,
             icon: 'bx-mask',
-            zone: 'Cam 04 – Sector 2'
+            zone: this.zoneLabel
           }, new Date().toLocaleTimeString([], {
             hour: '2-digit', minute: '2-digit'
           }) + ' (Live)');
@@ -3912,7 +3536,7 @@ class VideoCam4Detector {
         }
 
       } catch (err) {
-        console.error('Cam04 AI detection error', err);
+        console.error(`${this.camLabel} AI detection error`, err);
       }
 
       running = false;
@@ -4392,47 +4016,6 @@ function initAllCameraCards() {
 }
 
 // ============================================================
-// BAND CONNECTION STATUS
-// ============================================================
-// Press Z -> "Band Connected" + location   |   Press B -> "Band Disconnected"
-function initBandStatus() {
-  const panel = document.getElementById('band-status');
-  const msgEl = document.getElementById('band-msg');
-  const locEl = document.getElementById('band-loc');
-  if (!panel || !msgEl || !locEl) return;
-
-  const LOCATION = 'DSATM College';
-
-  function showConnected() {
-    panel.classList.remove('hidden', 'disconnected');
-    msgEl.textContent = 'Band Connected';
-    locEl.textContent = LOCATION;
-    locEl.classList.remove('hidden');
-  }
-
-  function showDisconnected() {
-    panel.classList.remove('hidden');
-    panel.classList.add('disconnected');
-    msgEl.textContent = 'Band Disconnected';
-    locEl.textContent = '';
-    locEl.classList.add('hidden');
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey || e.altKey || e.metaKey) return;
-    const tag = (e.target && e.target.tagName) || '';
-    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && e.target.isContentEditable)) return;
-
-    const key = e.key.toLowerCase();
-    if (key === 'z') {
-      showConnected();
-    } else if (key === 'b') {
-      showDisconnected();
-    }
-  });
-}
-
-// ============================================================
 // GLOBAL INIT
 // ============================================================
 
@@ -4443,13 +4026,18 @@ document.addEventListener('DOMContentLoaded', () => {
   initSettings();
   initRegistration();
   initAllCameraCards();
-  initBandStatus();
 
   window._dashSim = new DashboardSim();
   window._webcamSim = new WebcamMaskDetector();
   window._cam2Sim = new VideoMaskDetector();
-  window._cam3Sim = new VideoCam3Detector();
-  window._cam4Sim = new VideoCam4Detector();
+  window._cam3Sim = new VideoCamDetector({
+    key: 'cam3', camLabel: 'Cam 03',
+    zoneLabel: 'Cam 03 – West Gate', feedLabel: 'West Gate Feed'
+  });
+  window._cam4Sim = new VideoCamDetector({
+    key: 'cam4', camLabel: 'Cam 04',
+    zoneLabel: 'Cam 04 – Food Court', feedLabel: 'Food Court Feed'
+  });
 
   // ── Sync Cam 01 stats & stream into Live Feeds "Cam 01: Live Entrance" ──
   (function syncCam1ToFeeds() {
@@ -4511,37 +4099,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(() => {
       const cam3Count = document.getElementById('cam3-count');
       if (cam3Count && feedsCountEl) feedsCountEl.innerText = cam3Count.innerText;
-    }, 1000);
-  })();
-
-  // ── Sync Cam 04 stats into Live Feeds "Cam 04: Sector 2 - Food Court" ─────
-  (function syncCam4ToFeeds() {
-    const v1 = document.getElementById('cam4-video');
-    const v2 = document.getElementById('feeds-cam4-video');
-    [v1, v2].forEach(v => {
-      if (v) {
-        v.play().catch(() => {});
-      }
-    });
-
-    const feedsCountEl = document.getElementById('feeds-cam4-count');
-    const feedsDensityEl = document.getElementById('feeds-cam4-density');
-    const feedsMaskBar = document.getElementById('feeds-cam4-mask-bar');
-
-    setInterval(() => {
-      const cam4Count = document.getElementById('cam4-count');
-      const cam4Density = document.getElementById('cam4-density');
-      const cam4MaskBar = document.getElementById('cam4-mask-bar');
-
-      if (cam4Count && feedsCountEl) feedsCountEl.innerText = cam4Count.innerText;
-      if (cam4Density && feedsDensityEl) {
-        feedsDensityEl.innerText = cam4Density.innerText;
-        feedsDensityEl.style.color = cam4Density.style.color;
-      }
-      if (cam4MaskBar && feedsMaskBar) {
-        feedsMaskBar.innerHTML = cam4MaskBar.innerHTML;
-        feedsMaskBar.style.color = cam4MaskBar.style.color;
-      }
     }, 1000);
   })();
 
