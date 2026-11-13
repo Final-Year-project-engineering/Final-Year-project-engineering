@@ -2232,6 +2232,11 @@ class WebcamMaskDetector {
         const yellowRatio = (yellowBannerPixels / count) * 100;
         const whiteRatio = (whiteCardPixels / count) * 100;
 
+        console.debug('[ID] blue%:', blueRatio.toFixed(2),
+                      'yellow%:', yellowRatio.toFixed(2),
+                      'white%:', whiteRatio.toFixed(2),
+                      'roi:', sw + 'x' + sh);
+
         // --- Vertical Lanyard Localization Check ---
         const COLS = 8;
         const ROWS = 6;
@@ -2336,12 +2341,11 @@ class WebcamMaskDetector {
           extractCanvas.height = this.video.videoHeight || 480;
         }
 
-        extractCtx.save();
-
-        // Draw video MIRRORED to match the displayed scaleX(-1) transform,
-        // so face-api landmark x-coordinates align with sampled pixel positions.
-        extractCtx.translate(extractCanvas.width, 0);
-        extractCtx.scale(-1, 1);
+        // Draw the video UN-mirrored. face-api runs on the raw video element,
+        // so box/landmark x-coordinates are in raw-frame space. Sampling this
+        // canvas at (x * scaleX) must therefore use the un-flipped frame,
+        // otherwise the chest ROI is read from the mirrored side of the video
+        // (which made IDs register when no card was present, and vice-versa).
         extractCtx.drawImage(
           this.video,
           0,
@@ -2349,8 +2353,6 @@ class WebcamMaskDetector {
           extractCanvas.width,
           extractCanvas.height
         );
-
-        extractCtx.restore();
 
         const scaleX = extractCanvas.width / displaySize.width;
         const scaleY = extractCanvas.height / displaySize.height;
@@ -4026,6 +4028,34 @@ document.addEventListener('DOMContentLoaded', () => {
   initSettings();
   initRegistration();
   initAllCameraCards();
+
+  // ── Wristband connection status (Z = connect, B = disconnect) ────────────
+  const bandStatus = document.getElementById('band-status');
+  const bandMsg    = document.getElementById('band-msg');
+  const bandLoc    = document.getElementById('band-loc');
+
+  const setBandState = (connected, loc = '') => {
+    if (!bandStatus || !bandMsg) return;
+    bandStatus.classList.remove('hidden', 'disconnected');
+    if (connected) {
+      bandMsg.textContent = 'Band Connected';
+      bandMsg.style.color = '';
+      if (bandLoc) {
+        bandLoc.textContent = loc || 'Zone Alpha • 12.825° N, 77.514° E';
+        bandLoc.classList.remove('hidden');
+      }
+    } else {
+      bandStatus.classList.add('disconnected');
+      bandMsg.textContent = 'Band Disconnected';
+      if (bandLoc) bandLoc.classList.add('hidden');
+    }
+  };
+
+  document.addEventListener('keydown', (e) => {
+    const key = e.key;
+    if (key === 'z' || key === 'Z') setBandState(true);
+    else if (key === 'b' || key === 'B') setBandState(false);
+  });
 
   window._dashSim = new DashboardSim();
   window._webcamSim = new WebcamMaskDetector();
